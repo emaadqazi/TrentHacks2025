@@ -1,83 +1,89 @@
-# ResuBlocks Backend
+# ResuBlocks Backend API
 
-Backend API for ResuBlocks - Resume building application.
+Python FastAPI backend for parsing and exporting resumes.
 
-## Features
+## Setup
 
-- 📄 Resume upload and processing
-- 🔍 Resume critique against job descriptions
-- 🕷️ Web scraping for job postings
-- 💾 Job posting data storage
-- 🤖 AI-powered recommendations
-
-## Tech Stack
-
-- **Node.js** - Runtime environment
-- **Express** - Web framework
-- **TypeScript** - Type safety
-- **Axios** - HTTP client
-- **Cheerio** - Web scraping
-- **CORS** - Cross-origin resource sharing
-- **dotenv** - Environment variables
-
-## Getting Started
-
-### Installation
-
+1. **Create virtual environment:**
 ```bash
-npm install
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
 
-### Development
-
+2. **Install dependencies:**
 ```bash
-npm run dev
+pip install -r requirements.txt
 ```
 
-The server will be available at `http://localhost:5000`
-
-### Build
-
+3. **Run the server:**
 ```bash
-npm run build
+cd api
+python main.py
 ```
 
-### Production
-
-```bash
-npm start
-```
-
-## Environment Variables
-
-Create a `.env` file in the root directory:
-
-```env
-PORT=5000
-NODE_ENV=development
-DATABASE_URL=your_database_url_here
-OPENAI_API_KEY=your_openai_api_key_here
-```
-
-## Project Structure
-
-```
-src/
-  ├── controllers/     # Request handlers
-  ├── services/        # Business logic
-  ├── routes/          # API routes
-  └── index.ts         # Entry point
-```
+Server will run on `http://localhost:5001`
 
 ## API Endpoints
 
-- `GET /api/health` - Health check
-- `POST /api/resume/upload` - Upload resume
-- `POST /api/resume/critique` - Critique resume against job description
-- `POST /api/resume/blocks/alternatives` - Get alternative bullet points
-- `POST /api/jobs/scrape` - Scrape job posting
+### POST /api/parse-resume
+Upload a PDF resume and get structured job blocks.
 
-## Database
+**Request:** multipart/form-data with PDF file
+**Response:**
+```json
+{
+  "blocks": [
+    {
+      "id": "uuid",
+      "company": "Samsung",
+      "title": "Software Engineer",
+      "location": "Toronto, ON",
+      "dateRange": "May 2024 - Aug 2024",
+      "bullets": [
+        {
+          "id": "uuid",
+          "text": "Built tracking system..."
+        }
+      ]
+    }
+  ]
+}
+```
 
-Database setup will be added based on requirements (MongoDB, PostgreSQL, etc.)
+### POST /api/export-resume
+Export edited blocks to PDF.
 
+**Request:**
+```json
+{
+  "blocks": [...]
+}
+```
+
+**Response:** PDF file download
+
+## Features
+
+- PDF text extraction with pdfplumber
+- Smart pattern matching for:
+  - Company names (uppercase, bold text)
+  - Job titles (italic, after company)
+  - Locations (City, State format)
+  - Date ranges (various formats)
+  - Bullet points (markers: •, -, *, etc.)
+- Professional PDF export with reportlab
+- Error handling and fallbacks
+
+## Testing
+
+```bash
+# Test parsing
+curl -X POST http://localhost:5001/api/parse-resume \
+  -F "file=@resume.pdf"
+
+# Test export
+curl -X POST http://localhost:5001/api/export-resume \
+  -H "Content-Type: application/json" \
+  -d '{"blocks": [...]}' \
+  --output resume.pdf
+```
