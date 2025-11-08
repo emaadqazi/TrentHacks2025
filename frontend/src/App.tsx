@@ -1,91 +1,7 @@
-import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Blocks, Sparkles, FileText, Zap, Download, TrendingUp } from 'lucide-react';
-import { ResumeBuilder, type ResumeBlock } from './components/ResumeBuilder';
-import { BlockAlternatives } from './components/BlockAlternatives';
 
 function App() {
-  const [showBuilder, setShowBuilder] = useState(false);
-  const [blocks, setBlocks] = useState<ResumeBlock[]>([
-    {
-      id: '1',
-      type: 'experience',
-      content: 'Developed and maintained web applications using React and TypeScript',
-    },
-    {
-      id: '2',
-      type: 'education',
-      content: 'Bachelor of Science in Computer Science, University Name',
-    },
-    {
-      id: '3',
-      type: 'skill',
-      content: 'Proficient in JavaScript, TypeScript, React, Node.js, and Python',
-    },
-  ]);
-
-  const [alternatives] = useState([
-    {
-      id: 'alt-1',
-      content: 'Built scalable web applications with React, improving user engagement by 40%',
-      score: 95,
-    },
-    {
-      id: 'alt-2',
-      content: 'Developed full-stack applications using React and Node.js, serving 10,000+ users',
-      score: 88,
-    },
-  ]);
-
-  if (showBuilder) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <nav className="bg-white shadow-sm border-b">
-          <div className="container mx-auto px-4 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Blocks className="w-8 h-8 text-indigo-600" />
-                <span className="text-2xl font-bold text-gray-900">ResuBlocks</span>
-              </div>
-              <button
-                onClick={() => setShowBuilder(false)}
-                className="px-4 py-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-              >
-                Back to Home
-              </button>
-            </div>
-          </div>
-        </nav>
-
-        <div className="container mx-auto px-4 py-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <h2 className="text-2xl font-semibold text-gray-800 mb-4">
-                Resume Blocks
-              </h2>
-              <p className="text-sm text-gray-500 mb-4">
-                Drag and drop to reorder your resume sections
-              </p>
-              <ResumeBuilder blocks={blocks} onBlocksChange={setBlocks} />
-            </div>
-
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <h2 className="text-2xl font-semibold text-gray-800 mb-4">
-                Alternative Suggestions
-              </h2>
-              <BlockAlternatives
-                alternatives={alternatives}
-                onSelect={(alt) => {
-                  console.log('Selected alternative:', alt);
-                }}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
       {/* Hero Section */}
@@ -122,7 +38,7 @@ function App() {
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => setShowBuilder(true)}
+            onClick={() => alert('Builder coming soon!')}
             className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-12 py-4 rounded-full text-xl font-semibold shadow-xl hover:shadow-2xl transition-all duration-300"
           >
             Get Started →
@@ -209,7 +125,7 @@ function App() {
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => setShowBuilder(true)}
+            onClick={() => alert('Builder coming soon!')}
             className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-12 py-4 rounded-full text-xl font-semibold shadow-xl hover:shadow-2xl transition-all duration-300"
           >
             Start Building Now →
