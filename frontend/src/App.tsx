@@ -3,6 +3,7 @@ import LandingPage from "./pages/Landing"
 import DashboardPage from "./pages/Dashboard"
 import LoginPage from "./pages/Login"
 import TemplatesPage from "./pages/Templates"
+import BlockEditor from "./pages/BlockEditor"
 import ResumeTest from "./pages/ResumeTest"
 
 function App() {
@@ -13,6 +14,8 @@ function App() {
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/templates" element={<TemplatesPage />} />
+        <Route path="/editor" element={<BlockEditor />} />
+        <Route path="/editor/:id" element={<BlockEditor />} />
         <Route path="/resume-test" element={<ResumeTest />} />
       </Routes>
     </Router>

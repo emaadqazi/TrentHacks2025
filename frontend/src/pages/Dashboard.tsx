@@ -91,13 +91,15 @@ export default function DashboardPage() {
           <aside className="space-y-6">
             <Card className="border-2">
               <CardContent className="p-4 space-y-3">
-                <Button
-                  className="w-full justify-start gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
-                  size="lg"
-                >
-                  <Plus className="h-5 w-5" />
-                  New Resume
-                </Button>
+                <Link to="/editor" className="block">
+                  <Button
+                    className="w-full justify-start gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
+                    size="lg"
+                  >
+                    <Plus className="h-5 w-5" />
+                    New Resume
+                  </Button>
+                </Link>
                 <Button variant="outline" className="w-full justify-start gap-2 bg-transparent" size="default">
                   <Upload className="h-4 w-4" />
                   Upload Resume
@@ -187,10 +189,12 @@ export default function DashboardPage() {
                         </DropdownMenu>
                       </div>
                       <div className="mt-4 flex gap-2">
-                        <Button size="sm" className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90">
-                          <Pencil className="mr-2 h-3 w-3" />
-                          Edit
-                        </Button>
+                        <Link to="/editor" className="flex-1">
+                          <Button size="sm" className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
+                            <Pencil className="mr-2 h-3 w-3" />
+                            Edit
+                          </Button>
+                        </Link>
                         <Button size="sm" variant="outline">
                           <Download className="h-3 w-3" />
                         </Button>
@@ -210,10 +214,12 @@ export default function DashboardPage() {
                     Start building your first resume or upload an existing one to get started
                   </p>
                   <div className="flex gap-3">
-                    <Button className="bg-primary text-primary-foreground hover:bg-primary/90">
-                      <Plus className="mr-2 h-4 w-4" />
-                      Create New Resume
-                    </Button>
+                    <Link to="/editor">
+                      <Button className="bg-primary text-primary-foreground hover:bg-primary/90">
+                        <Plus className="mr-2 h-4 w-4" />
+                        Create New Resume
+                      </Button>
+                    </Link>
                     <Button variant="outline">
                       <Upload className="mr-2 h-4 w-4" />
                       Upload Resume
