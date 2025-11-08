@@ -24,7 +24,6 @@ import {
   LogOut,
 } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
-import { AuthDebugPanel } from "@/components/auth/AuthDebugPanel"
 
 const recentResumes = [
   { id: 1, title: "Software Engineer Resume", date: "2 days ago", template: "Modern Minimal" },
@@ -111,14 +110,9 @@ export default function DashboardPage() {
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-      </nav>
-      <div className="container mx-auto px-4 py-8">
-        {/* Auth Debug Panel - Remove this in production */}
-        <div className="mb-6">
-          <AuthDebugPanel />
-        </div>
-        
-        <div className="grid gap-8 lg:grid-cols-[280px_1fr]">
+          </nav>
+          <div className="container mx-auto px-4 py-8">
+            <div className="grid gap-8 lg:grid-cols-[280px_1fr]">
           {/* Sidebar */}
           <aside className="space-y-6">
             <Card className="border-2">
