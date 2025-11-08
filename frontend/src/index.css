@@ -2,14 +2,254 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+
+@layer base {
+  :root {
+    /* Updated to true earthy coffee/nature palette with warm browns and forest greens */
+    --background: oklch(0.97 0.012 70);
+    --foreground: oklch(0.22 0.025 50);
+    --card: oklch(0.985 0.008 75);
+    --card-foreground: oklch(0.22 0.025 50);
+    --popover: oklch(0.985 0.008 75);
+    --popover-foreground: oklch(0.22 0.025 50);
+    --primary: oklch(0.38 0.065 145);
+    --primary-foreground: oklch(0.98 0.008 75);
+    --secondary: oklch(0.42 0.055 55);
+    --secondary-foreground: oklch(0.98 0.008 75);
+    --muted: oklch(0.91 0.015 70);
+    --muted-foreground: oklch(0.48 0.03 60);
+    --accent: oklch(0.85 0.025 65);
+    --accent-foreground: oklch(0.28 0.035 55);
+    --destructive: oklch(0.577 0.245 27.325);
+    --destructive-foreground: oklch(0.99 0.005 90);
+    --border: oklch(0.86 0.02 68);
+    --input: oklch(0.86 0.02 68);
+    --ring: oklch(0.38 0.065 145);
+    --chart-1: oklch(0.38 0.065 145);
+    --chart-2: oklch(0.42 0.055 55);
+    --chart-3: oklch(0.48 0.075 40);
+    --chart-4: oklch(0.52 0.06 160);
+    --chart-5: oklch(0.65 0.045 70);
+    --radius: 0.75rem;
+    --sidebar: oklch(0.97 0.012 70);
+    --sidebar-foreground: oklch(0.22 0.025 50);
+    --sidebar-primary: oklch(0.38 0.065 145);
+    --sidebar-primary-foreground: oklch(0.98 0.008 75);
+    --sidebar-accent: oklch(0.91 0.015 70);
+    --sidebar-accent-foreground: oklch(0.28 0.035 55);
+    --sidebar-border: oklch(0.86 0.02 68);
+    --sidebar-ring: oklch(0.38 0.065 145);
+  }
+
+  .dark {
+    /* Warm dark mode with deep browns and forest tones */
+    --background: oklch(0.18 0.02 50);
+    --foreground: oklch(0.94 0.012 75);
+    --card: oklch(0.22 0.022 52);
+    --card-foreground: oklch(0.94 0.012 75);
+    --popover: oklch(0.22 0.022 52);
+    --popover-foreground: oklch(0.94 0.012 75);
+    --primary: oklch(0.52 0.08 148);
+    --primary-foreground: oklch(0.98 0.008 75);
+    --secondary: oklch(0.55 0.07 58);
+    --secondary-foreground: oklch(0.98 0.008 75);
+    --muted: oklch(0.28 0.025 55);
+    --muted-foreground: oklch(0.62 0.025 68);
+    --accent: oklch(0.32 0.028 58);
+    --accent-foreground: oklch(0.94 0.012 75);
+    --destructive: oklch(0.55 0.22 30);
+    --destructive-foreground: oklch(0.95 0.01 90);
+    --border: oklch(0.3 0.025 55);
+    --input: oklch(0.3 0.025 55);
+    --ring: oklch(0.52 0.08 148);
+    --chart-1: oklch(0.52 0.08 148);
+    --chart-2: oklch(0.55 0.07 58);
+    --chart-3: oklch(0.58 0.085 42);
+    --chart-4: oklch(0.58 0.07 162);
+    --chart-5: oklch(0.68 0.052 72);
+    --sidebar: oklch(0.22 0.022 52);
+    --sidebar-foreground: oklch(0.94 0.012 75);
+    --sidebar-primary: oklch(0.52 0.08 148);
+    --sidebar-primary-foreground: oklch(0.98 0.008 75);
+    --sidebar-accent: oklch(0.28 0.025 55);
+    --sidebar-accent-foreground: oklch(0.94 0.012 75);
+    --sidebar-border: oklch(0.3 0.025 55);
+    --sidebar-ring: oklch(0.52 0.08 148);
+  }
+
+  * {
+    border-color: var(--border);
+  }
+
+  *:focus-visible {
+    outline-color: var(--ring);
+    outline-offset: 2px;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    margin: 0;
+    min-width: 320px;
+    min-height: 100vh;
+  }
 }
 
-body {
-  margin: 0;
-  min-width: 320px;
-  min-height: 100vh;
+@layer utilities {
+  /* Playful button hover animations */
+  .btn-playful {
+    @apply transition-all duration-300 ease-out;
+  }
+  .btn-playful:hover {
+    @apply -translate-y-1 rotate-1 scale-105 shadow-lg;
+  }
+  .btn-playful-alt {
+    @apply transition-all duration-200;
+  }
+  .btn-playful-alt:hover {
+    @apply scale-110 -rotate-3;
+  }
+
+  /* More organic blob animations with earthy colors */
+  @keyframes blob-float {
+    0%,
+    100% {
+      transform: translate(0, 0) scale(1) rotate(0deg);
+    }
+    33% {
+      transform: translate(40px, -60px) scale(1.15) rotate(12deg);
+    }
+    66% {
+      transform: translate(-30px, 30px) scale(0.88) rotate(-12deg);
+    }
+  }
+
+  @keyframes blob-float-alt {
+    0%,
+    100% {
+      transform: translate(0, 0) scale(1) rotate(0deg);
+    }
+    33% {
+      transform: translate(-50px, 40px) scale(1.2) rotate(-18deg);
+    }
+    66% {
+      transform: translate(30px, -30px) scale(0.92) rotate(18deg);
+    }
+  }
+
+  .blob-animate {
+    animation: blob-float 25s ease-in-out infinite;
+  }
+
+  .blob-animate-alt {
+    animation: blob-float-alt 30s ease-in-out infinite;
+  }
+
+  /* Enhanced paper texture with more visible grain */
+  .texture-paper {
+    position: relative;
+  }
+  .texture-paper::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    opacity: 0.06;
+    background-image: url("data:image/svg+xml,%3Csvg width='300' height='300' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paper'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='5' seed='2' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paper)' fill='%23d4a574' /%3E%3C/svg%3E");
+    pointer-events: none;
+    mix-blend-mode: multiply;
+  }
+
+  /* Multiple coffee ring stains for authenticity */
+  .texture-coffee {
+    position: relative;
+  }
+  .texture-coffee::after {
+    content: "";
+    position: absolute;
+    top: 8%;
+    right: 12%;
+    width: 180px;
+    height: 180px;
+    opacity: 0.08;
+    background: radial-gradient(circle at 30% 30%, transparent 35%, oklch(0.42 0.055 55) 38%, transparent 42%),
+      radial-gradient(circle, oklch(0.42 0.055 55) 0%, transparent 65%);
+    border-radius: 45% 55% 60% 40% / 55% 45% 55% 45%;
+    pointer-events: none;
+  }
+  .texture-coffee::before {
+    content: "";
+    position: absolute;
+    bottom: 15%;
+    left: 8%;
+    width: 140px;
+    height: 140px;
+    opacity: 0.05;
+    background: radial-gradient(circle, oklch(0.38 0.065 145) 0%, transparent 70%);
+    border-radius: 50% 40% 45% 55% / 60% 50% 50% 40%;
+    pointer-events: none;
+  }
+
+  /* Subtle wood grain texture for footer */
+  .texture-wood {
+    position: relative;
+  }
+  .texture-wood::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    opacity: 0.04;
+    background-image: repeating-linear-gradient(
+        90deg,
+        oklch(0.42 0.055 55) 0px,
+        oklch(0.38 0.065 145) 2px,
+        transparent 4px,
+        transparent 8px
+      ),
+      url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='wood'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.05' numOctaves='3' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23wood)' /%3E%3C/svg%3E");
+    pointer-events: none;
+  }
+
+  /* Card wiggle on hover */
+  @keyframes wiggle {
+    0%,
+    100% {
+      transform: rotate(0deg);
+    }
+    25% {
+      transform: rotate(1.5deg);
+    }
+    75% {
+      transform: rotate(-1.5deg);
+    }
+  }
+  .card-wiggle:hover {
+    animation: wiggle 0.4s ease-in-out;
+  }
+
+  /* Hand-drawn underline with earthy brown color */
+  .hand-drawn-underline {
+    position: relative;
+    display: inline-block;
+  }
+  .hand-drawn-underline::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -6px;
+    width: 100%;
+    height: 4px;
+    background-image: url("data:image/svg+xml,%3Csvg width='120' height='4' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0,2.5 Q30,0.5 60,2.5 T120,2.5' stroke='oklch(0.42 0.055 55)' fill='none' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: repeat-x;
+    background-size: 120px 4px;
+  }
+
+  /* Hand-drawn icon rotation for organic feel */
+  .icon-handdrawn {
+    transition: all 0.3s ease;
+  }
+  .icon-handdrawn:hover {
+    transform: rotate(-8deg) scale(1.1);
+  }
 }
