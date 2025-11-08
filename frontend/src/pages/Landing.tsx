@@ -34,6 +34,12 @@ export default function LandingPage() {
             >
               Templates
             </Link>
+            <Link
+              to="/resume-test"
+              className="text-sm font-medium text-primary hover:text-primary/80 transition-colors"
+            >
+              Resume Test
+            </Link>
           </div>
           <div className="flex items-center gap-3">
             <Link to="/login">
