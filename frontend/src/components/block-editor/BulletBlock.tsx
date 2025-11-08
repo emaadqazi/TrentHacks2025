@@ -50,10 +50,11 @@ export default function BulletBlock({ block, index, isSelected, onSelect, onDele
         >
           <Card
             className={`
-              mb-2 cursor-pointer transition-all
+              mb-2 cursor-pointer draggable-element
               ${getStrengthColor(block.strength)}
-              ${isSelected ? "ring-2 ring-primary" : ""}
-              ${snapshot.isDragging ? "shadow-lg rotate-1" : "hover:shadow-md"}
+              ${isSelected ? "ring-2 ring-primary ring-offset-2" : ""}
+              ${snapshot.isDragging ? "dragging" : ""}
+              ${!snapshot.isDragging && "snap-in"}
             `}
             onClick={() => onSelect(block.id)}
           >
@@ -62,14 +63,14 @@ export default function BulletBlock({ block, index, isSelected, onSelect, onDele
                 {/* Drag Handle */}
                 <div
                   {...provided.dragHandleProps}
-                  className="mt-1 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="mt-1 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity drag-handle"
                 >
                   <GripVertical className="h-4 w-4 text-muted-foreground" />
                 </div>
 
                 {/* Strength Indicator */}
                 <div className="mt-1.5">
-                  <div className={`h-2 w-2 rounded-full ${getStrengthDot(block.strength)}`} />
+                  <div className={`h-2 w-2 rounded-full transition-all ${getStrengthDot(block.strength)} ${isSelected ? 'scale-125 animate-pulse' : ''}`} />
                 </div>
 
                 {/* Content */}

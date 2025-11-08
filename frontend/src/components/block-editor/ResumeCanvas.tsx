@@ -5,6 +5,7 @@ import { Plus, FileUp } from "lucide-react"
 import SectionBlock from "./SectionBlock"
 import { DragDropContext, Droppable } from "@hello-pangea/dnd"
 import type { DropResult } from "@hello-pangea/dnd"
+import { motion } from "framer-motion"
 
 interface ResumeCanvasProps {
   resume: Resume | null
@@ -286,21 +287,36 @@ export default function ResumeCanvas({ resume, setResume, selectedBlockId, onBlo
   }
 
   return (
-    <div className="space-y-4">
+    <motion.div
+      className="space-y-4"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
       <DragDropContext onDragEnd={handleDragEnd}>
         <Droppable droppableId="all-sections" type="SECTION">
-          {(provided) => (
-            <div ref={provided.innerRef} {...provided.droppableProps}>
+          {(provided, snapshot) => (
+            <div
+              ref={provided.innerRef}
+              {...provided.droppableProps}
+              className={`transition-all ${snapshot.isDraggingOver ? 'drop-ripple' : ''}`}
+            >
               {localResume.sections.map((section, index) => (
-                <SectionBlock
+                <motion.div
                   key={section.id}
-                  section={section}
-                  index={index}
-                  selectedBlockId={selectedBlockId}
-                  onBlockSelect={onBlockSelect}
-                  onBlockDelete={handleBlockDelete}
-                  onAddBullet={handleAddBullet}
-                />
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.1, duration: 0.3 }}
+                >
+                  <SectionBlock
+                    section={section}
+                    index={index}
+                    selectedBlockId={selectedBlockId}
+                    onBlockSelect={onBlockSelect}
+                    onBlockDelete={handleBlockDelete}
+                    onAddBullet={handleAddBullet}
+                  />
+                </motion.div>
               ))}
               {provided.placeholder}
             </div>
@@ -312,7 +328,7 @@ export default function ResumeCanvas({ resume, setResume, selectedBlockId, onBlo
         <Plus className="mr-2 h-4 w-4" />
         Add Section
       </Button>
-    </div>
+    </motion.div>
   )
 }
 

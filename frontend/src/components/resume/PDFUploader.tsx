@@ -2,18 +2,22 @@ import { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Upload, FileText, Loader2, AlertCircle, X } from 'lucide-react';
+import { Upload, FileText, Loader2, AlertCircle, X, CheckCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Resume } from '@/types/resume';
+import { transformBackendToResume, validateBackendResponse } from '@/utils/resumeTransformer';
+import toast from 'react-hot-toast';
 
 interface PDFUploaderProps {
-  onParse: (blocks: any[]) => void;
+  onResumeLoaded: (resume: Resume) => void;
   onFileSelect: (file: File | null) => void;
 }
 
-export function PDFUploader({ onParse, onFileSelect }: PDFUploaderProps) {
+export function PDFUploader({ onResumeLoaded, onFileSelect }: PDFUploaderProps) {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const pdfFile = acceptedFiles[0];
@@ -38,6 +42,7 @@ export function PDFUploader({ onParse, onFileSelect }: PDFUploaderProps) {
   const parsePDF = async (pdfFile: File) => {
     setLoading(true);
     setError(null);
+    setSuccess(false);
 
     try {
       const formData = new FormData();
@@ -55,61 +60,58 @@ export function PDFUploader({ onParse, onFileSelect }: PDFUploaderProps) {
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Backend error response:', errorText);
-        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
+      console.log('Parsed resume data:', data);
 
-      if (data.blocks && data.blocks.length > 0) {
-        onParse(data.blocks);
-      } else {
-        // If parsing failed, use mock data as fallback
-        const mockBlocks = [
-          {
-            id: 'job-1',
-            company: 'Parsing Failed - Edit Manually',
-            title: 'Job Title',
-            location: 'Location',
-            dateRange: 'Date Range',
-            bullets: [
-              {
-                id: 'bullet-1-1',
-                text: 'Could not automatically parse PDF. Please edit this manually.',
-              },
-            ],
-          },
-        ];
-        onParse(mockBlocks);
-        setError('PDF parsing incomplete. Please review and edit the blocks.');
+      // Validate response structure
+      if (!validateBackendResponse(data)) {
+        throw new Error('Invalid response format from backend');
       }
+
+      // Transform backend data to frontend Resume type
+      const resume = transformBackendToResume(data);
+
+      // Pass resume to parent
+      onResumeLoaded(resume);
+      setSuccess(true);
+      toast.success(`Successfully parsed ${resume.sections.length} sections from your resume!`);
 
       setLoading(false);
     } catch (err) {
-      // Fallback to mock data if backend is not available
+      // Fallback to sample resume if backend is not available
       console.error('Backend error:', err);
-      
-      const mockBlocks = [
-        {
-          id: 'job-1',
-          company: 'Backend Not Connected - Using Sample',
-          title: 'Software Engineer',
-          location: 'City, State',
-          dateRange: 'Jan 2024 - Present',
-          bullets: [
-            {
-              id: 'bullet-1-1',
-              text: 'Backend server is not running. Start it with: cd backend && python api/main.py',
-            },
-            {
-              id: 'bullet-1-2',
-              text: 'These are sample blocks. Click to edit them manually.',
-            },
-          ],
-        },
-      ];
-      
-      onParse(mockBlocks);
-      setError('Backend not available. Using sample data. To enable parsing, start the backend server.');
+
+      const sampleResume: Resume = {
+        id: 'sample-fallback',
+        title: 'Sample Resume (Backend Not Connected)',
+        sections: [
+          {
+            id: 'exp-1',
+            type: 'experience',
+            label: 'Work Experience',
+            order: 0,
+            blocks: [
+              {
+                id: 'block-1',
+                type: 'bullet',
+                text: 'Software Engineer at Tech Company',
+                score: 85,
+                strength: 'good',
+                tags: ['Software', 'Engineering'],
+              },
+            ],
+          },
+        ],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      onResumeLoaded(sampleResume);
+      setError('Backend not available. Using sample data. To enable parsing, start: cd backend/api && python main.py');
+      toast.error('Could not connect to backend. Using sample data.');
       setLoading(false);
     }
   };
@@ -117,6 +119,7 @@ export function PDFUploader({ onParse, onFileSelect }: PDFUploaderProps) {
   const clearFile = () => {
     setFile(null);
     setError(null);
+    setSuccess(false);
     onFileSelect(null);
   };
 
@@ -182,6 +185,16 @@ export function PDFUploader({ onParse, onFileSelect }: PDFUploaderProps) {
                       <div className="flex items-center gap-2 text-primary">
                         <Loader2 className="h-5 w-5 animate-spin" />
                         <span className="text-sm font-medium">Parsing...</span>
+                      </div>
+                    ) : success ? (
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 text-green-600">
+                          <CheckCircle className="h-5 w-5" />
+                          <span className="text-sm font-medium">Parsed!</span>
+                        </div>
+                        <Button variant="ghost" size="sm" onClick={clearFile}>
+                          <X className="h-4 w-4" />
+                        </Button>
                       </div>
                     ) : (
                       <Button variant="ghost" size="sm" onClick={clearFile}>

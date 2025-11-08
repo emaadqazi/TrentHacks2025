@@ -252,4 +252,128 @@
   .icon-handdrawn:hover {
     transform: rotate(-8deg) scale(1.1);
   }
+
+  /* ===== DRAG AND DROP ANIMATIONS ===== */
+
+  /* Dragging state animation */
+  @keyframes drag-lift {
+    0% {
+      transform: scale(1) rotate(0deg);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    100% {
+      transform: scale(1.05) rotate(2deg);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2), 0 0 0 3px oklch(0.38 0.065 145 / 0.3);
+    }
+  }
+
+  .dragging {
+    animation: drag-lift 0.2s ease-out forwards;
+    cursor: grabbing !important;
+    opacity: 0.9;
+    z-index: 1000;
+  }
+
+  /* Drop zone highlighting */
+  @keyframes drop-zone-pulse {
+    0%, 100% {
+      background-color: oklch(0.38 0.065 145 / 0.05);
+      border-color: oklch(0.38 0.065 145 / 0.4);
+    }
+    50% {
+      background-color: oklch(0.38 0.065 145 / 0.1);
+      border-color: oklch(0.38 0.065 145 / 0.6);
+    }
+  }
+
+  .drop-zone-active {
+    animation: drop-zone-pulse 1.5s ease-in-out infinite;
+    border-width: 2px;
+    border-style: dashed;
+  }
+
+  /* Snap-in effect when dropped */
+  @keyframes snap-in {
+    0% {
+      transform: scale(1.05) rotate(2deg);
+      opacity: 0.9;
+    }
+    50% {
+      transform: scale(0.95) rotate(-1deg);
+    }
+    100% {
+      transform: scale(1) rotate(0deg);
+      opacity: 1;
+    }
+  }
+
+  .snap-in {
+    animation: snap-in 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  }
+
+  /* Magnetic attraction effect near drop zones */
+  @keyframes magnetic-pull {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-2px);
+    }
+  }
+
+  .magnetic-near {
+    animation: magnetic-pull 0.6s ease-in-out infinite;
+  }
+
+  /* Drag handle glow effect */
+  @keyframes handle-glow {
+    0%, 100% {
+      box-shadow: 0 0 0 0 oklch(0.38 0.065 145 / 0);
+    }
+    50% {
+      box-shadow: 0 0 20px 5px oklch(0.38 0.065 145 / 0.4);
+    }
+  }
+
+  .drag-handle:hover {
+    animation: handle-glow 1.5s ease-in-out infinite;
+  }
+
+  /* Ripple effect on successful drop */
+  @keyframes ripple {
+    0% {
+      box-shadow: 0 0 0 0 oklch(0.38 0.065 145 / 0.7);
+    }
+    100% {
+      box-shadow: 0 0 0 20px oklch(0.38 0.065 145 / 0);
+    }
+  }
+
+  .drop-ripple {
+    animation: ripple 0.6s ease-out;
+  }
+
+  /* Block shake on drag start */
+  @keyframes drag-shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-2px); }
+    75% { transform: translateX(2px); }
+  }
+
+  .drag-start-shake {
+    animation: drag-shake 0.2s ease-out;
+  }
+
+  /* Smooth transitions for all draggable elements */
+  .draggable-element {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.3s ease,
+                background-color 0.2s ease,
+                border-color 0.2s ease;
+  }
+
+  .draggable-element:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
 }

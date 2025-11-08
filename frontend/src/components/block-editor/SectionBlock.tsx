@@ -28,15 +28,15 @@ export default function SectionBlock({
         <div
           ref={provided.innerRef}
           {...provided.draggableProps}
-          className={`mb-6 ${snapshot.isDragging ? "opacity-50" : ""}`}
+          className={`mb-6 transition-all ${snapshot.isDragging ? "dragging" : ""}`}
         >
-          <Card className="border-2">
+          <Card className="border-2 draggable-element">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div
                     {...provided.dragHandleProps}
-                    className="cursor-grab active:cursor-grabbing"
+                    className="cursor-grab active:cursor-grabbing drag-handle p-1 rounded hover:bg-primary/10 transition-colors"
                   >
                     <GripVertical className="h-5 w-5 text-muted-foreground" />
                   </div>
@@ -58,8 +58,8 @@ export default function SectionBlock({
                   <div
                     ref={provided.innerRef}
                     {...provided.droppableProps}
-                    className={`min-h-[50px] ${
-                      snapshot.isDraggingOver ? "bg-primary/5 rounded-md" : ""
+                    className={`min-h-[50px] rounded-md transition-all ${
+                      snapshot.isDraggingOver ? "drop-zone-active" : ""
                     }`}
                   >
                     {section.blocks.length === 0 ? (
