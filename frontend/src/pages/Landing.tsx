@@ -89,7 +89,7 @@ export default function LandingPage() {
           <div className="mb-10 flex justify-center">
             <div className="relative overflow-hidden rounded-2xl shadow-2xl border-4 border-primary/20">
               <img 
-                src="/hero-illustration.jpg" 
+                src="/NewHeroImage.jpg" 
                 alt="Happy person building resume with colorful blocks" 
                 className="w-full max-w-md h-auto object-cover"
               />

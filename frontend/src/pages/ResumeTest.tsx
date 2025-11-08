@@ -4,8 +4,11 @@ import type { JobBlock, ZoomLevel, ComponentFocus } from '@/types/blockResume';
 import { emaadResumeBlocks } from '@/data/emaadResume';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { ArrowLeft, Briefcase, MapPin, Calendar, ChevronRight, Home } from 'lucide-react';
+import { ArrowLeft, Briefcase, MapPin, Calendar, ChevronRight, Home, Upload, FileDown } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { PDFUploader } from '@/components/resume/PDFUploader';
+import { PDFPreview } from '@/components/resume/PDFPreview';
+import { BackendStatus } from '@/components/resume/BackendStatus';
 
 export default function ResumeTest() {
   const [jobs, setJobs] = useState<JobBlock[]>(emaadResumeBlocks);
@@ -13,8 +16,21 @@ export default function ResumeTest() {
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [componentFocus, setComponentFocus] = useState<ComponentFocus | null>(null);
   const [editValue, setEditValue] = useState('');
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [showUpload, setShowUpload] = useState(true);
 
   const selectedBlock = jobs.find((job) => job.id === selectedBlockId);
+
+  const handleParsedBlocks = (blocks: JobBlock[]) => {
+    setJobs(blocks);
+    setShowUpload(false);
+  };
+
+  const handleExportPDF = async () => {
+    // TODO: Implement PDF export
+    console.log('Exporting resume as PDF...', jobs);
+    alert('PDF export coming soon!');
+  };
 
   // OVERVIEW LEVEL - All job blocks
   const renderOverview = () => (
@@ -25,9 +41,45 @@ export default function ResumeTest() {
       transition={{ duration: 0.3 }}
       className="p-8"
     >
+      {/* Backend Status */}
+      <div className="mb-4">
+        <BackendStatus />
+      </div>
+
+      {/* PDF Upload Section */}
+      {showUpload && (
+        <div className="mb-8">
+          <div className="mb-6">
+            <h1 className="text-3xl font-bold text-foreground mb-2">Upload Your Resume</h1>
+            <p className="text-muted-foreground">
+              Upload a PDF resume to automatically parse it into editable blocks
+            </p>
+          </div>
+          <PDFUploader onParse={handleParsedBlocks} onFileSelect={setUploadedFile} />
+        </div>
+      )}
+
+      {/* PDF Preview Section */}
+      {uploadedFile && (
+        <div className="mb-8">
+          <PDFPreview file={uploadedFile} />
+        </div>
+      )}
+
+      {/* Block Editor Section */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-foreground mb-2">Resume Editor</h1>
-        <p className="text-muted-foreground">Click any job block to edit</p>
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-foreground mb-2">Resume Blocks</h2>
+            <p className="text-muted-foreground">Click any job block to edit</p>
+          </div>
+          {uploadedFile && (
+            <Button variant="outline" onClick={() => setShowUpload(!showUpload)}>
+              <Upload className="mr-2 h-4 w-4" />
+              {showUpload ? 'Hide' : 'Show'} Upload
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
@@ -391,10 +443,16 @@ export default function ResumeTest() {
               )}
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <span className="text-sm text-muted-foreground">
               Level: {zoomLevel === 'overview' ? '1' : zoomLevel === 'block' ? '2' : '3'}/3
             </span>
+            {zoomLevel === 'overview' && jobs.length > 0 && (
+              <Button variant="outline" size="sm" onClick={handleExportPDF}>
+                <FileDown className="mr-2 h-4 w-4" />
+                Export PDF
+              </Button>
+            )}
           </div>
         </div>
       </div>
