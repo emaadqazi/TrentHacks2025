@@ -4,9 +4,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Upload, FileText, Loader2, AlertCircle, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import type { JobBlock } from '@/types/blockResume';
 
 interface PDFUploaderProps {
-  onParse: (blocks: any[]) => void;
+  onParse: (blocks: JobBlock[]) => void;
   onFileSelect: (file: File | null) => void;
 }
 
@@ -60,11 +61,38 @@ export function PDFUploader({ onParse, onFileSelect }: PDFUploaderProps) {
 
       const data = await response.json();
 
-      if (data.blocks && data.blocks.length > 0) {
-        onParse(data.blocks);
+      // Backend returns { sections: [{ blocks: [...] }] } format
+      // Extract JobBlock[] from sections
+      const jobBlocks: JobBlock[] = [];
+      
+      if (data.sections && Array.isArray(data.sections)) {
+        data.sections.forEach((section: any) => {
+          if (section.blocks && Array.isArray(section.blocks)) {
+            section.blocks.forEach((block: any) => {
+              if (block.company || block.institution) {
+                jobBlocks.push({
+                  id: block.id || `job-${jobBlocks.length + 1}`,
+                  company: block.company || block.institution || '',
+                  title: block.title || block.degree || '',
+                  location: block.location || '',
+                  dateRange: block.dateRange || '',
+                  bullets: (block.bullets || []).map((b: any, idx: number) => ({
+                    id: b.id || `bullet-${jobBlocks.length}-${idx}`,
+                    text: b.text || '',
+                    highlights: [],
+                  })),
+                });
+              }
+            });
+          }
+        });
+      }
+      
+      if (jobBlocks.length > 0) {
+        onParse(jobBlocks);
       } else {
         // If parsing failed, use mock data as fallback
-        const mockBlocks = [
+        const mockBlocks: JobBlock[] = [
           {
             id: 'job-1',
             company: 'Parsing Failed - Edit Manually',
@@ -75,6 +103,7 @@ export function PDFUploader({ onParse, onFileSelect }: PDFUploaderProps) {
               {
                 id: 'bullet-1-1',
                 text: 'Could not automatically parse PDF. Please edit this manually.',
+                highlights: [],
               },
             ],
           },
@@ -88,7 +117,7 @@ export function PDFUploader({ onParse, onFileSelect }: PDFUploaderProps) {
       // Fallback to mock data if backend is not available
       console.error('Backend error:', err);
       
-      const mockBlocks = [
+      const mockBlocks: JobBlock[] = [
         {
           id: 'job-1',
           company: 'Backend Not Connected - Using Sample',
@@ -98,11 +127,13 @@ export function PDFUploader({ onParse, onFileSelect }: PDFUploaderProps) {
           bullets: [
             {
               id: 'bullet-1-1',
-              text: 'Backend server is not running. Start it with: cd backend && python api/main.py',
+              text: 'Backend server is not running. Start it with: cd backend && ./start.sh',
+              highlights: [],
             },
             {
               id: 'bullet-1-2',
               text: 'These are sample blocks. Click to edit them manually.',
+              highlights: [],
             },
           ],
         },
