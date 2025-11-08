@@ -6,6 +6,7 @@ import {
   signOut,
   onAuthStateChanged,
   GoogleAuthProvider,
+  GithubAuthProvider,
   signInWithPopup,
   sendPasswordResetEmail,
   updateProfile,
@@ -21,6 +22,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   signInWithGoogle: () => Promise<void>;
+  signInWithGithub: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
 }
 
@@ -38,6 +40,34 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+// Helper function to get user-friendly error messages
+function getErrorMessage(errorCode: string): string {
+  switch (errorCode) {
+    case 'auth/invalid-credential':
+    case 'auth/wrong-password':
+    case 'auth/user-not-found':
+      return 'Incorrect email or password';
+    case 'auth/email-already-in-use':
+      return 'An account with this email already exists';
+    case 'auth/weak-password':
+      return 'Password should be at least 6 characters';
+    case 'auth/invalid-email':
+      return 'Invalid email address';
+    case 'auth/operation-not-allowed':
+      return 'This sign-in method is not enabled. Please contact support.';
+    case 'auth/user-disabled':
+      return 'This account has been disabled';
+    case 'auth/too-many-requests':
+      return 'Too many attempts. Please try again later.';
+    case 'auth/popup-closed-by-user':
+      return 'Sign-in cancelled';
+    case 'auth/network-request-failed':
+      return 'Network error. Please check your connection.';
+    default:
+      return 'An error occurred. Please try again.';
+  }
+}
+
 export function AuthProvider({ children }: AuthProviderProps) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -53,7 +83,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       
       toast.success('Account created successfully!');
     } catch (error: any) {
-      const errorMessage = error.message || 'Failed to create account';
+      const errorMessage = getErrorMessage(error.code);
       toast.error(errorMessage);
       throw error;
     }
@@ -64,7 +94,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       await signInWithEmailAndPassword(auth, email, password);
       toast.success('Signed in successfully!');
     } catch (error: any) {
-      const errorMessage = error.message || 'Failed to sign in';
+      const errorMessage = getErrorMessage(error.code);
       toast.error(errorMessage);
       throw error;
     }
@@ -75,7 +105,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       await signOut(auth);
       toast.success('Signed out successfully');
     } catch (error: any) {
-      const errorMessage = error.message || 'Failed to sign out';
+      const errorMessage = getErrorMessage(error.code);
       toast.error(errorMessage);
       throw error;
     }
@@ -87,7 +117,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
       await signInWithPopup(auth, provider);
       toast.success('Signed in with Google successfully!');
     } catch (error: any) {
-      const errorMessage = error.message || 'Failed to sign in with Google';
+      const errorMessage = getErrorMessage(error.code);
+      toast.error(errorMessage);
+      throw error;
+    }
+  }
+
+  async function signInWithGithub() {
+    try {
+      const provider = new GithubAuthProvider();
+      await signInWithPopup(auth, provider);
+      toast.success('Signed in with GitHub successfully!');
+    } catch (error: any) {
+      const errorMessage = getErrorMessage(error.code);
       toast.error(errorMessage);
       throw error;
     }
@@ -98,7 +140,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       await sendPasswordResetEmail(auth, email);
       toast.success('Password reset email sent!');
     } catch (error: any) {
-      const errorMessage = error.message || 'Failed to send password reset email';
+      const errorMessage = getErrorMessage(error.code);
       toast.error(errorMessage);
       throw error;
     }
@@ -129,6 +171,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     login,
     logout,
     signInWithGoogle,
+    signInWithGithub,
     resetPassword,
   };
 
