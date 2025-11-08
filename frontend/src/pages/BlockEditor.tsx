@@ -12,8 +12,8 @@ import MatchScoreBar from "@/components/block-editor/MatchScoreBar"
 export default function BlockEditor() {
   const [resume, setResume] = useState<Resume | null>(null)
   const [jobDescription, setJobDescription] = useState<JobDescription | null>(null)
-  const [suggestions, setSuggestions] = useState<SuggestionBlock[]>([])
-  const [matchAnalysis, setMatchAnalysis] = useState<MatchAnalysis | null>(null)
+  const [suggestions] = useState<SuggestionBlock[]>([])
+  const [matchAnalysis] = useState<MatchAnalysis | null>(null)
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null)
 
   const handleJobDescriptionAnalyze = (jd: JobDescription) => {

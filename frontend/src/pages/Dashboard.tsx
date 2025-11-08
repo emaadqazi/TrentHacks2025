@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -21,7 +21,10 @@ import {
   Pencil,
   Trash2,
   Upload,
+  LogOut,
 } from "lucide-react"
+import { useAuth } from "@/contexts/AuthContext"
+import { AuthDebugPanel } from "@/components/auth/AuthDebugPanel"
 
 const recentResumes = [
   { id: 1, title: "Software Engineer Resume", date: "2 days ago", template: "Modern Minimal" },
@@ -30,6 +33,27 @@ const recentResumes = [
 ]
 
 export default function DashboardPage() {
+  const { currentUser, logout } = useAuth()
+  const navigate = useNavigate()
+
+  const userDisplayName = currentUser?.displayName || currentUser?.email?.split('@')[0] || 'User'
+  const userEmail = currentUser?.email || ''
+  const userInitials = userDisplayName
+    .split(' ')
+    .map(n => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2) || 'U'
+
+  const handleLogout = async () => {
+    try {
+      await logout()
+      navigate('/login')
+    } catch (error) {
+      // Error handled by AuthContext
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Top Navigation */}
@@ -64,28 +88,36 @@ export default function DashboardPage() {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-9 w-9 rounded-full">
                 <Avatar className="h-9 w-9">
-                  <AvatarImage src="/abstract-geometric-shapes.png" alt="User" />
-                  <AvatarFallback className="bg-primary text-primary-foreground">JD</AvatarFallback>
+                  <AvatarImage src={currentUser?.photoURL || undefined} alt={userDisplayName} />
+                  <AvatarFallback className="bg-primary text-primary-foreground">{userInitials}</AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56" align="end" forceMount>
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">John Doe</p>
-                  <p className="text-xs leading-none text-muted-foreground">john@example.com</p>
+                  <p className="text-sm font-medium leading-none">{userDisplayName}</p>
+                  <p className="text-xs leading-none text-muted-foreground">{userEmail}</p>
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem>Profile Settings</DropdownMenuItem>
               <DropdownMenuItem>Billing</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>Log out</DropdownMenuItem>
+              <DropdownMenuItem onClick={handleLogout}>
+                <LogOut className="mr-2 h-4 w-4" />
+                Log out
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </nav>
       <div className="container mx-auto px-4 py-8">
+        {/* Auth Debug Panel - Remove this in production */}
+        <div className="mb-6">
+          <AuthDebugPanel />
+        </div>
+        
         <div className="grid gap-8 lg:grid-cols-[280px_1fr]">
           {/* Sidebar */}
           <aside className="space-y-6">
