@@ -11,8 +11,10 @@ const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 // Serve static files from dist directory
 app.use(express.static(path.join(__dirname, 'dist')));
 
-// Handle SPA routing - serve index.html for all routes
-app.get('*', (req, res) => {
+// Handle SPA routing - serve index.html for all routes that don't match static files
+app.use((req, res, next) => {
+  // If the request is for a file that exists, serve it
+  // Otherwise, serve index.html for client-side routing
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
