@@ -228,6 +228,12 @@ export default function DashboardPage() {
                 Job Tracker
               </Link>
               <Link
+                to="/interview-questions"
+                className="text-sm font-medium text-[#C9B896] hover:text-[#F5F1E8] transition-colors"
+              >
+                Interview Prep
+              </Link>
+              <Link
                 to="/templates"
                 className="text-sm font-medium text-[#C9B896] hover:text-[#F5F1E8] transition-colors"
               >

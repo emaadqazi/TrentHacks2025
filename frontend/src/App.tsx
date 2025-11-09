@@ -8,6 +8,7 @@ import BlockEditor from "./pages/BlockEditor"
 import ResumeTest from "./pages/ResumeTest"
 import ResumeCritiquePage from "./pages/ResumeCritique"
 import JobTrackerPage from "./pages/JobTracker"
+import InterviewQuestionsPage from "./pages/InterviewQuestions"
 
 function App() {
   return (
@@ -69,6 +70,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <JobTrackerPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/interview-questions"
+            element={
+              <ProtectedRoute>
+                <InterviewQuestionsPage />
               </ProtectedRoute>
             }
           />
