@@ -1,0 +1,646 @@
+{
+  "resume_evaluation_criteria": {
+    "version": "1.0",
+    "last_updated": "2025-11",
+    "scoring_framework": {
+      "scale": "1-100",
+      "thresholds": {
+        "excellent": {"min": 90, "max": 100, "label": "Excellent - Ready to submit"},
+        "good": {"min": 80, "max": 89, "label": "Good - Minor improvements needed"},
+        "fair": {"min": 70, "max": 79, "label": "Fair - Several improvements required"},
+        "needs_work": {"min": 0, "max": 69, "label": "Needs significant work"}
+      }
+    },
+    "weight_distribution": {
+      "entry_level": {
+        "ats_compatibility": 15,
+        "keywords": 20,
+        "content_quality": 20,
+        "skills": 20,
+        "projects": 20,
+        "education": 5
+      },
+      "mid_level": {
+        "ats_compatibility": 15,
+        "keywords": 25,
+        "content_quality": 30,
+        "skills": 15,
+        "experience": 10,
+        "other": 5
+      },
+      "senior": {
+        "ats_compatibility": 10,
+        "keywords": 25,
+        "content_quality": 35,
+        "skills": 15,
+        "leadership": 10,
+        "other": 5
+      }
+    },
+    "evaluation_categories": [
+      {
+        "id": "ats_compatibility",
+        "name": "ATS Compatibility & Formatting",
+        "max_score": 20,
+        "critical": true,
+        "checks": [
+          {
+            "id": "file_format",
+            "name": "File Format",
+            "required": true,
+            "criteria": ["PDF from Word/Google Docs", "Text is selectable/highlightable"],
+            "failures": ["Image-based PDF", "Non-standard format"]
+          },
+          {
+            "id": "layout",
+            "name": "Layout Structure",
+            "required": true,
+            "criteria": ["Single column layout", "No tables", "No text boxes"],
+            "failures": ["Multi-column", "Tables present", "Text boxes used"]
+          },
+          {
+            "id": "section_headers",
+            "name": "Section Headers",
+            "required": true,
+            "criteria": ["Standard naming (Work Experience, Education, Skills)", "Clear hierarchy"],
+            "failures": ["Creative naming", "Non-standard headers", "Missing key sections"]
+          },
+          {
+            "id": "formatting_elements",
+            "name": "Formatting Elements",
+            "required": true,
+            "criteria": ["No graphics/images/logos", "Standard bullet points", "Simple fonts"],
+            "failures": ["Graphics present", "Custom bullets", "Unusual fonts"]
+          },
+          {
+            "id": "length",
+            "name": "Resume Length",
+            "required": true,
+            "criteria": ["1-2 pages maximum", "1 page for <5 years experience"],
+            "failures": ["More than 2 pages", "Less than 1 page with experience"]
+          }
+        ]
+      },
+      {
+        "id": "keywords",
+        "name": "Keyword Optimization",
+        "max_score": 25,
+        "critical": true,
+        "checks": [
+          {
+            "id": "jd_match",
+            "name": "Job Description Match",
+            "required": true,
+            "target_range": {"min": 70, "max": 85},
+            "criteria": [
+              "Hard skills from JD present",
+              "Soft skills from JD included",
+              "Industry terminology used",
+              "Technology names correct"
+            ],
+            "scoring": {
+              "excellent": "75-85% match",
+              "good": "65-74% match",
+              "fair": "55-64% match",
+              "poor": "<55% match"
+            }
+          },
+          {
+            "id": "keyword_placement",
+            "name": "Keyword Placement",
+            "required": true,
+            "criteria": [
+              "Keywords in Skills section",
+              "Keywords in experience bullets",
+              "Both acronyms and full terms used",
+              "Natural integration"
+            ]
+          },
+          {
+            "id": "keyword_quality",
+            "name": "Keyword Quality",
+            "required": true,
+            "avoid": [
+              "Keyword stuffing",
+              "Irrelevant buzzwords",
+              "Generic filler words"
+            ]
+          }
+        ],
+        "action_verbs": {
+          "leadership": ["Led", "Directed", "Managed", "Coordinated", "Spearheaded", "Orchestrated"],
+          "achievement": ["Achieved", "Delivered", "Exceeded", "Launched", "Drove", "Generated"],
+          "technical": ["Developed", "Engineered", "Architected", "Designed", "Implemented", "Built"],
+          "improvement": ["Optimized", "Enhanced", "Improved", "Streamlined", "Reduced", "Increased"],
+          "collaboration": ["Collaborated", "Partnered", "Facilitated", "Coordinated", "Aligned"]
+        }
+      },
+      {
+        "id": "content_quality",
+        "name": "Content Quality & Impact",
+        "max_score": 30,
+        "critical": true,
+        "checks": [
+          {
+            "id": "star_method",
+            "name": "STAR Method Application",
+            "required": true,
+            "formula": "[Action Verb] + [Task] + [Technologies/Methods] + [Quantifiable Result]",
+            "target": "70% of bullets should follow this format",
+            "examples": {
+              "bad": "Responsible for improving website performance",
+              "good": "Optimized website load times by 40% through code refactoring and CDN implementation, improving user retention by 25%"
+            }
+          },
+          {
+            "id": "quantification",
+            "name": "Quantifiable Achievements",
+            "required": true,
+            "types": [
+              "Numbers/percentages",
+              "Dollar amounts",
+              "Time saved",
+              "Scale indicators (users, data volume)",
+              "Before/after comparisons"
+            ],
+            "target": "70%+ bullets should have metrics"
+          },
+          {
+            "id": "impact_focus",
+            "name": "Impact-Focused Language",
+            "required": true,
+            "criteria": [
+              "Outcomes over responsibilities",
+              "Active voice (not passive)",
+              "Present tense for current role",
+              "Past tense for previous roles"
+            ]
+          },
+          {
+            "id": "conciseness",
+            "name": "Conciseness & Clarity",
+            "required": true,
+            "criteria": [
+              "3-5 bullets per job",
+              "Each bullet 1-2 lines max",
+              "No paragraphs",
+              "Every word adds value"
+            ]
+          }
+        ],
+        "red_flags": [
+          "Passive voice",
+          "No metrics/numbers",
+          "Vague responsibilities",
+          "Excessive jargon"
+        ]
+      },
+      {
+        "id": "skills",
+        "name": "Technical Skills Section",
+        "max_score": 15,
+        "checks": [
+          {
+            "id": "skill_organization",
+            "name": "Skill Organization",
+            "required": true,
+            "categories": [
+              "Programming Languages",
+              "Frameworks & Technologies",
+              "Databases",
+              "Cloud Platforms",
+              "Tools & Software"
+            ],
+            "format": "Grouped by category with clear labels"
+          },
+          {
+            "id": "relevance",
+            "name": "Skill Relevance",
+            "required": true,
+            "criteria": [
+              "Technologies from JD included",
+              "Relevant to target role",
+              "Current/modern technologies",
+              "Correct spelling and naming"
+            ]
+          },
+          {
+            "id": "presentation",
+            "name": "Skill Presentation",
+            "required": true,
+            "avoid": [
+              "Skill bars/ratings",
+              "Outdated technologies",
+              "Soft skills in technical section"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "projects",
+        "name": "Projects Section",
+        "max_score": 15,
+        "importance_by_level": {
+          "entry": "high",
+          "mid": "medium",
+          "senior": "low"
+        },
+        "checks": [
+          {
+            "id": "project_structure",
+            "name": "Project Structure",
+            "required": true,
+            "elements": [
+              "Project name with link (GitHub/demo)",
+              "Tech stack listed",
+              "Brief description (1 line)",
+              "Quantifiable impact",
+              "Your specific contribution"
+            ]
+          },
+          {
+            "id": "project_quality",
+            "name": "Project Quality",
+            "required": true,
+            "indicators": [
+              "Active GitHub links",
+              "Real-world usage metrics",
+              "Technical complexity evident",
+              "Recent projects prioritized",
+              "2-4 projects total"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "experience",
+        "name": "Experience Section",
+        "max_score": 20,
+        "checks": [
+          {
+            "id": "job_format",
+            "name": "Job Entry Format",
+            "required": true,
+            "elements": [
+              "Job title",
+              "Company name",
+              "Location",
+              "Dates (MM/YYYY format)"
+            ]
+          },
+          {
+            "id": "bullet_structure",
+            "name": "Bullet Structure",
+            "required": true,
+            "criteria": [
+              "3-5 bullets per position",
+              "Each bullet <2 lines",
+              "Most impactful first",
+              "Relevant to target role"
+            ]
+          },
+          {
+            "id": "work_history",
+            "name": "Work History",
+            "required": true,
+            "criteria": [
+              "Reverse chronological order",
+              "No unexplained gaps >6 months",
+              "Career progression visible"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "education",
+        "name": "Education Section",
+        "max_score": 10,
+        "importance_by_level": {
+          "entry": "high",
+          "mid": "medium",
+          "senior": "low"
+        },
+        "checks": [
+          {
+            "id": "required_info",
+            "name": "Required Information",
+            "elements": [
+              "Degree type and major",
+              "University name",
+              "Graduation date",
+              "GPA if >3.5 (optional)"
+            ]
+          },
+          {
+            "id": "additional_for_new_grads",
+            "name": "Additional for New Grads",
+            "elements": [
+              "Relevant coursework (3-5 max)",
+              "Academic achievements",
+              "Thesis/capstone project"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "contact",
+        "name": "Contact Information",
+        "max_score": 5,
+        "checks": [
+          {
+            "id": "required_fields",
+            "name": "Required Fields",
+            "elements": [
+              "Full name",
+              "Phone number",
+              "Professional email",
+              "LinkedIn URL",
+              "GitHub/Portfolio (tech roles)",
+              "Location (City, State)"
+            ]
+          },
+          {
+            "id": "professionalism",
+            "name": "Professionalism",
+            "avoid": [
+              "Unprofessional email",
+              "Full street address",
+              "Photo (US/Canada)",
+              "Age or marital status"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "grammar_consistency",
+        "name": "Grammar & Consistency",
+        "max_score": 10,
+        "critical": true,
+        "zero_tolerance": true,
+        "checks": [
+          {
+            "id": "language",
+            "name": "Language Quality",
+            "requirements": [
+              "Zero spelling errors",
+              "Zero grammar errors",
+              "Consistent tense usage",
+              "Professional tone"
+            ]
+          },
+          {
+            "id": "consistency",
+            "name": "Formatting Consistency",
+            "requirements": [
+              "Bullet format consistent",
+              "Date format consistent",
+              "Font sizes consistent",
+              "Spacing consistent"
+            ]
+          },
+          {
+            "id": "accuracy",
+            "name": "Accuracy",
+            "requirements": [
+              "Company names correct",
+              "Technology names correct",
+              "URLs functional",
+              "Numbers formatted consistently"
+            ]
+          }
+        ]
+      }
+    ],
+    "faang_specific_criteria": {
+      "google_attributes": [
+        {
+          "name": "Role-Related Knowledge",
+          "description": "Technical skills and domain expertise",
+          "indicators": [
+            "Relevant technical skills demonstrated",
+            "Domain expertise evident",
+            "Project complexity appropriate"
+          ]
+        },
+        {
+          "name": "General Cognitive Ability",
+          "description": "Problem-solving demonstrated through achievements",
+          "indicators": [
+            "Complex problems solved",
+            "Innovative solutions",
+            "Learning from challenges"
+          ]
+        },
+        {
+          "name": "Leadership",
+          "description": "Initiative and impact beyond individual role",
+          "indicators": [
+            "Team leadership examples",
+            "Cross-functional influence",
+            "Mentorship activities"
+          ]
+        },
+        {
+          "name": "Googleyness",
+          "description": "Collaboration, learning, ambitious thinking",
+          "indicators": [
+            "Collaborative achievements",
+            "Continuous learning",
+            "Ambitious goals pursued"
+          ]
+        }
+      ],
+      "six_second_rule": {
+        "description": "Most critical info scannable in 6 seconds",
+        "key_elements": [
+          "Last position & company",
+          "Total years of experience",
+          "Education credentials",
+          "Top 2-3 technical skills"
+        ]
+      },
+      "scale_indicators": [
+        "User numbers",
+        "Data volumes",
+        "Team sizes",
+        "Revenue impact",
+        "Performance metrics"
+      ]
+    },
+    "red_flags": {
+      "content": [
+        {
+          "flag": "Employment gaps >6 months",
+          "severity": "medium",
+          "recommendation": "Provide brief explanation"
+        },
+        {
+          "flag": "Job hopping (<1 year each)",
+          "severity": "medium",
+          "recommendation": "Add context for short tenures"
+        },
+        {
+          "flag": "Vague responsibilities",
+          "severity": "high",
+          "recommendation": "Add specific achievements"
+        },
+        {
+          "flag": "No quantifiable results",
+          "severity": "high",
+          "recommendation": "Add metrics to 70%+ bullets"
+        }
+      ],
+      "format": [
+        {
+          "flag": "Multi-column layout",
+          "severity": "critical",
+          "recommendation": "Convert to single column immediately"
+        },
+        {
+          "flag": "Graphics/images present",
+          "severity": "critical",
+          "recommendation": "Remove all graphics"
+        },
+        {
+          "flag": ">2 pages",
+          "severity": "high",
+          "recommendation": "Reduce to 2 pages maximum"
+        },
+        {
+          "flag": "Inconsistent formatting",
+          "severity": "medium",
+          "recommendation": "Standardize all formatting"
+        }
+      ],
+      "language": [
+        {
+          "flag": "Spelling/grammar errors",
+          "severity": "critical",
+          "recommendation": "Proofread thoroughly, zero errors acceptable"
+        },
+        {
+          "flag": "Passive voice",
+          "severity": "medium",
+          "recommendation": "Convert to active voice"
+        },
+        {
+          "flag": "Generic buzzwords",
+          "severity": "low",
+          "recommendation": "Replace with specific terms"
+        }
+      ]
+    },
+    "feedback_structure": {
+      "priority_levels": [
+        {
+          "level": "critical",
+          "label": "🚨 CRITICAL ISSUES",
+          "description": "Fix immediately - these will cause rejection",
+          "includes": [
+            "ATS compatibility failures",
+            "Spelling/grammar errors",
+            "No quantifiable results",
+            "Major formatting issues"
+          ]
+        },
+        {
+          "level": "high",
+          "label": "⚠️ HIGH PRIORITY",
+          "description": "Address soon - significant impact on success",
+          "includes": [
+            "Low keyword match",
+            "Missing key sections",
+            "Weak action verbs",
+            "Inconsistent formatting"
+          ]
+        },
+        {
+          "level": "medium",
+          "label": "💡 RECOMMENDATIONS",
+          "description": "Improvements that strengthen application",
+          "includes": [
+            "Additional optimizations",
+            "Nice-to-have additions",
+            "Style improvements"
+          ]
+        },
+        {
+          "level": "positive",
+          "label": "✅ STRENGTHS",
+          "description": "What the candidate is doing well",
+          "includes": [
+            "Strong elements to maintain",
+            "Positive aspects to keep"
+          ]
+        }
+      ],
+      "output_format": {
+        "overall_score": "XX/100",
+        "rating_label": "Excellent/Good/Fair/Needs Work",
+        "section_scores": {
+          "ats_compatibility": "X/20",
+          "keywords": "X/25",
+          "content_quality": "X/30",
+          "skills": "X/15",
+          "other": "X/10"
+        },
+        "issues": [
+          {
+            "priority": "critical/high/medium",
+            "title": "Issue title",
+            "category": "Category name",
+            "problem": "What's wrong",
+            "impact": "How it affects chances",
+            "fix": "Specific action to take",
+            "example": {
+              "before": "Current text",
+              "after": "Suggested text"
+            }
+          }
+        ],
+        "strengths": ["List of positive elements"]
+      }
+    },
+    "common_metrics": {
+      "performance": [
+        "Speed improvement (%)",
+        "Load time reduction (seconds)",
+        "Response time improvement (ms)",
+        "Efficiency gain (%)"
+      ],
+      "scale": [
+        "Number of users",
+        "Daily active users",
+        "Data volume processed",
+        "Requests handled per day",
+        "System capacity"
+      ],
+      "business_impact": [
+        "Revenue generated ($)",
+        "Cost savings ($)",
+        "ROI (%)",
+        "Customer acquisition",
+        "Retention improvement (%)"
+      ],
+      "quality": [
+        "Bug reduction (%)",
+        "Test coverage (%)",
+        "Code review pass rate (%)",
+        "Uptime percentage",
+        "Error rate reduction (%)"
+      ],
+      "team": [
+        "Team size led",
+        "Team members mentored",
+        "Stakeholders managed",
+        "Cross-functional partners"
+      ],
+      "time": [
+        "Time saved (hours/days)",
+        "Delivery ahead of schedule",
+        "Development time reduced",
+        "Time to market"
+      ]
+    }
+  }
+}

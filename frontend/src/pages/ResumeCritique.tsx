@@ -3,7 +3,13 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useDropzone } from 'react-dropzone';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,6 +34,36 @@ import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { PDFViewer } from '@/components/resume/PDFViewer';
 import { getUserProfile, getUserResumePDF } from '@/lib/userProfile';
+
+// Sprite options - pixel art characters
+const SPRITE_OPTIONS = [
+  { id: 'sprite1', name: 'Sprite 1', image: '/sprite1.png' },
+  { id: 'sprite2', name: 'Sprite 2', image: '/sprite2.png' },
+  { id: 'sprite3', name: 'Sprite 3', image: '/sprite3.png' },
+];
+
+// Component to render sprite avatar
+const SpriteAvatar = ({ spriteId, size = 64 }: { spriteId: string; size?: number }) => {
+  const sprite = SPRITE_OPTIONS.find(s => s.id === spriteId) || SPRITE_OPTIONS[0];
+  
+  return (
+    <div 
+      className="rounded-lg overflow-hidden bg-[#527853]/20 flex items-center justify-center" 
+      style={{ width: size, height: size }}
+    >
+      <img 
+        src={sprite.image} 
+        alt={sprite.name}
+        className="w-full h-full object-contain"
+        onError={(e) => {
+          // Fallback if image fails to load
+          const target = e.target as HTMLImageElement;
+          target.style.display = 'none';
+        }}
+      />
+    </div>
+  );
+};
 
 interface CritiqueScore {
   overall: number;
@@ -64,6 +100,9 @@ export default function ResumeCritiquePage() {
   const [displayedText, setDisplayedText] = useState('');
   const [showUpload, setShowUpload] = useState(true);
   const [userProfilePhoto, setUserProfilePhoto] = useState<string | null>(null);
+  const [selectedAvatar, setSelectedAvatar] = useState<string>('sprite1');
+  const [jobTitle, setJobTitle] = useState<string>('');
+  const [experienceLevel, setExperienceLevel] = useState<'entry' | 'mid' | 'senior' | 'auto'>('auto');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const text = 'UPLOAD YOUR RESUME';
@@ -76,19 +115,58 @@ export default function ResumeCritiquePage() {
     .toUpperCase()
     .slice(0, 2) || 'U';
 
-  // Load stored resume and profile photo on mount
-  useEffect(() => {
-    if (currentUser) {
-      loadStoredResume();
-      getUserProfile(currentUser.uid).then(profile => {
-        if (profile?.profilePhotoUrl) {
-          setUserProfilePhoto(profile.profilePhotoUrl);
-        }
-      }).catch(console.error);
-    }
-  }, [currentUser]);
+  const analyzeResume = useCallback(async (pdfFile: File) => {
+    setLoading(true);
+    setError(null);
+    setCritique(null);
 
-  const loadStoredResume = async () => {
+    try {
+      const formData = new FormData();
+      formData.append('file', pdfFile);
+
+      // Build query string with optional parameters
+      const queryParams = new URLSearchParams();
+      if (jobTitle.trim()) {
+        queryParams.append('jobTitle', jobTitle.trim());
+      }
+      if (experienceLevel && experienceLevel !== 'auto') {
+        queryParams.append('experienceLevel', experienceLevel);
+      }
+      const queryString = queryParams.toString();
+      const url = `/api/resume/critique${queryString ? `?${queryString}` : ''}`;
+
+      const critiqueResponse = await fetch(url, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!critiqueResponse.ok) {
+        const errorData = await critiqueResponse.json().catch(() => ({ 
+          error: 'Failed to get critique',
+          details: `Server returned status ${critiqueResponse.status}`
+        }));
+        throw new Error(errorData.error || errorData.details || `Server error: ${critiqueResponse.status}`);
+      }
+
+      const critiqueData = await critiqueResponse.json();
+      
+      if (!critiqueData.score || !critiqueData.suggestions) {
+        throw new Error('Invalid response format from server');
+      }
+
+      setCritique(critiqueData);
+      toast.success('Resume analyzed successfully with AI!');
+    } catch (err: any) {
+      console.error('Analysis error:', err);
+      const errorMessage = err?.message || 'Failed to analyze resume. Please ensure the backend server is running and OpenAI API key is configured.';
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  }, [jobTitle, experienceLevel]);
+
+  const loadStoredResume = useCallback(async () => {
     if (!currentUser) return;
     try {
       const resumeUrl = await getUserResumePDF(currentUser.uid);
@@ -106,7 +184,22 @@ export default function ResumeCritiquePage() {
     } catch (error) {
       console.error('Error loading stored resume:', error);
     }
-  };
+  }, [currentUser, analyzeResume]);
+
+  // Load stored resume and profile photo on mount
+  useEffect(() => {
+    if (currentUser) {
+      loadStoredResume();
+      getUserProfile(currentUser.uid).then(profile => {
+        if (profile?.profilePhotoUrl) {
+          setUserProfilePhoto(profile.profilePhotoUrl);
+        }
+        if (profile?.selectedAvatar) {
+          setSelectedAvatar(profile.selectedAvatar);
+        }
+      }).catch(console.error);
+    }
+  }, [currentUser, loadStoredResume]);
 
   // Typewriter effect
   useEffect(() => {
@@ -139,7 +232,7 @@ export default function ResumeCritiquePage() {
       setError('Please upload a valid PDF file');
       toast.error('Please upload a valid PDF file');
     }
-  }, []);
+  }, [analyzeResume]);
 
   const { getRootProps, isDragActive } = useDropzone({
     onDrop,
@@ -166,46 +259,6 @@ export default function ResumeCritiquePage() {
     } else {
       setError('Please upload a valid PDF file');
       toast.error('Please upload a valid PDF file');
-    }
-  };
-
-  const analyzeResume = async (pdfFile: File) => {
-    setLoading(true);
-    setError(null);
-    setCritique(null);
-
-    try {
-      const formData = new FormData();
-      formData.append('file', pdfFile);
-
-      const critiqueResponse = await fetch('/api/resume/critique', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!critiqueResponse.ok) {
-        const errorData = await critiqueResponse.json().catch(() => ({ 
-          error: 'Failed to get critique',
-          details: `Server returned status ${critiqueResponse.status}`
-        }));
-        throw new Error(errorData.error || errorData.details || `Server error: ${critiqueResponse.status}`);
-      }
-
-      const critiqueData = await critiqueResponse.json();
-      
-      if (!critiqueData.score || !critiqueData.suggestions) {
-        throw new Error('Invalid response format from server');
-      }
-
-      setCritique(critiqueData);
-      toast.success('Resume analyzed successfully with AI!');
-    } catch (err: any) {
-      console.error('Analysis error:', err);
-      const errorMessage = err?.message || 'Failed to analyze resume. Please ensure the backend server is running and OpenAI API key is configured.';
-      setError(errorMessage);
-      toast.error(errorMessage);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -285,11 +338,12 @@ export default function ResumeCritiquePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#1a0f08] via-[#221410] to-[#1a0f08]">
+    <div className="min-h-screen bg-gradient-to-br from-[#1a0f08] via-[#221410] to-[#1a0f08] relative">
       {/* Wood grain texture overlay */}
-      <div className="absolute inset-0 opacity-[0.15] pointer-events-none" style={{
+      <div className="fixed inset-0 opacity-[0.15] pointer-events-none z-0" style={{
         backgroundImage: `url("data:image/svg+xml,%3Csvg width='200' height='200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='wood'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.08' numOctaves='4' seed='1' /%3E%3CfeColorMatrix values='0 0 0 0 0.35, 0 0 0 0 0.24, 0 0 0 0 0.15, 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23wood)' /%3E%3C/svg%3E")`,
-        backgroundSize: '400px 400px'
+        backgroundSize: '400px 400px',
+        minHeight: '100vh'
       }} />
       
       {/* Top Navigation */}
@@ -333,11 +387,8 @@ export default function ResumeCritiquePage() {
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-9 w-9 rounded-full hover:bg-[#F5F1E8]/10">
-                <Avatar className="h-9 w-9">
-                  <AvatarImage src={userProfilePhoto || currentUser?.photoURL || undefined} alt={userDisplayName} />
-                  <AvatarFallback className="bg-gradient-to-br from-[#3a5f24] to-[#253f12] text-white">{userInitials}</AvatarFallback>
-                </Avatar>
+              <Button variant="ghost" className="relative h-9 w-9 rounded-lg hover:bg-[#F5F1E8]/10 p-0 overflow-hidden flex items-center justify-center">
+                <SpriteAvatar spriteId={selectedAvatar} size={36} />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56 bg-[#221410] border-[#8B6F47]/30" align="end" forceMount>
@@ -348,8 +399,12 @@ export default function ResumeCritiquePage() {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator className="bg-[#8B6F47]/30" />
-              <DropdownMenuItem className="text-[#F5F1E8] focus:bg-[#3a5f24]/20 focus:text-[#F5F1E8]">Profile Settings</DropdownMenuItem>
-              <DropdownMenuItem className="text-[#F5F1E8] focus:bg-[#3a5f24]/20 focus:text-[#F5F1E8]">Billing</DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => navigate('/profile')}
+                className="text-[#F5F1E8] focus:bg-[#3a5f24]/20 focus:text-[#F5F1E8]"
+              >
+                Profile Settings
+              </DropdownMenuItem>
               <DropdownMenuSeparator className="bg-[#8B6F47]/30" />
               <DropdownMenuItem onClick={handleLogout} className="text-[#F5F1E8] focus:bg-[#3a5f24]/20 focus:text-[#F5F1E8]">
                 <LogOut className="mr-2 h-4 w-4" />
@@ -360,7 +415,7 @@ export default function ResumeCritiquePage() {
         </div>
       </nav>
 
-      <div {...getRootProps()} className="min-h-[calc(100vh-4rem)]">
+      <div {...getRootProps()} className="min-h-[calc(100vh-4rem)] relative z-10">
         <div className="container mx-auto px-4 py-12">
           <AnimatePresence mode="wait">
             {showUpload && !file && !critique ? (
@@ -376,6 +431,38 @@ export default function ResumeCritiquePage() {
                   {displayedText}
                   <span className="animate-pulse">|</span>
                 </h1>
+
+                {/* Optional Job Title and Experience Level Inputs */}
+                <div className="w-full max-w-md mb-8 space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-[#C9B896] mb-2">
+                      Target Job Title (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={jobTitle}
+                      onChange={(e) => setJobTitle(e.target.value)}
+                      placeholder="e.g., Software Engineer, Product Manager..."
+                      className="w-full px-4 py-2 bg-[#1a0f08] border border-[#8B6F47]/50 rounded-lg text-[#F5F1E8] placeholder:text-[#C9B896] focus:ring-2 focus:ring-[#527853] focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[#C9B896] mb-2">
+                      Experience Level (Optional)
+                    </label>
+                    <Select value={experienceLevel} onValueChange={(value) => setExperienceLevel(value as 'entry' | 'mid' | 'senior' | 'auto')}>
+                      <SelectTrigger className="w-full bg-[#1a0f08] border-[#8B6F47]/50 text-[#F5F1E8]">
+                        <SelectValue placeholder="Select experience level (auto-detected if not specified)" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-[#221410] border-[#8B6F47]/50">
+                        <SelectItem value="auto" className="text-[#F5F1E8]">Auto-detect</SelectItem>
+                        <SelectItem value="entry" className="text-[#F5F1E8]">Entry Level (&lt;2 years)</SelectItem>
+                        <SelectItem value="mid" className="text-[#F5F1E8]">Mid Level (2-5 years)</SelectItem>
+                        <SelectItem value="senior" className="text-[#F5F1E8]">Senior (5+ years)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
 
                 {/* Upload Button */}
                 <div className="relative">
@@ -465,8 +552,8 @@ export default function ResumeCritiquePage() {
                 {/* Results Grid */}
                 {critique && (
                   <div className="max-w-7xl mx-auto">
-                    <div className="grid lg:grid-cols-[1fr_1.5fr] gap-8">
-                      {/* Left: Critique Results */}
+                    <div className="grid lg:grid-cols-[1fr_1.5fr] gap-8 mb-8">
+                      {/* Left: Overall Score */}
                       <div className="space-y-6">
                         {/* Overall Score */}
                         <Card className="border border-[#8B6F47]/20 bg-gradient-to-br from-[#221410] to-[#1a0f08] shadow-xl backdrop-blur-xl">
@@ -518,92 +605,87 @@ export default function ResumeCritiquePage() {
                           </CardContent>
                         </Card>
 
-                        {/* Summary */}
+                        {/* Executive Summary */}
                         <Card className="border border-[#8B6F47]/20 bg-gradient-to-br from-[#221410] to-[#1a0f08] shadow-xl backdrop-blur-xl">
                           <CardContent className="p-8">
                             <h3 className="text-xl font-semibold text-[#F5F1E8] mb-4 tracking-tight">Executive Summary</h3>
                             <p className="text-sm text-[#C9B896] leading-relaxed font-medium">{critique.summary}</p>
                           </CardContent>
                         </Card>
-
-                        {/* Suggestions */}
-                        <Card className="border border-[#8B6F47]/20 bg-gradient-to-br from-[#221410] to-[#1a0f08] shadow-xl backdrop-blur-xl">
-                          <CardContent className="p-8">
-                            <h3 className="text-xl font-semibold text-[#F5F1E8] mb-6 tracking-tight">Recommendations</h3>
-                            <div className="space-y-4">
-                              {critique.suggestions
-                                .sort((a, b) => {
-                                  const priorityOrder = { high: 0, medium: 1, low: 2 };
-                                  return priorityOrder[a.priority] - priorityOrder[b.priority];
-                                })
-                                .map((suggestion, index) => {
-                                  const categoryColors = getCategoryColor(suggestion.category);
-                                  const priorityNumber = index + 1;
-                                  const priorityColors = getPriorityNumberColor(suggestion.priority);
-                                  return (
-                                    <motion.div
-                                      key={suggestion.id}
-                                      initial={{ opacity: 0, x: -20 }}
-                                      animate={{ opacity: 1, x: 0 }}
-                                      transition={{ delay: index * 0.1 }}
-                                      className={`p-5 rounded-xl ${categoryColors.accent} ${categoryColors.bg} border-t border-r border-b ${categoryColors.border} hover:shadow-lg hover:bg-[#1a0f08]/80 transition-all duration-200`}
-                                    >
-                                      <div className="flex items-start gap-4">
-                                        {/* Priority Number */}
-                                        <div className={`flex-shrink-0 flex h-8 w-8 items-center justify-center rounded-full bg-[#221410] border-2 ${priorityColors.border} font-semibold text-sm ${priorityColors.text}`}>
-                                          {priorityNumber}
-                                        </div>
-                                        
-                                        {/* Category Icon */}
-                                        <div className="flex-shrink-0 mt-0.5">
-                                          {suggestion.category === 'strength' && (
-                                            <div className={`flex h-10 w-10 items-center justify-center rounded-full ${categoryColors.iconBg}`}>
-                                              <CheckCircle2 className={`h-5 w-5 ${categoryColors.iconColor}`} />
-                                            </div>
-                                          )}
-                                          {suggestion.category === 'weakness' && (
-                                            <div className={`flex h-10 w-10 items-center justify-center rounded-full ${categoryColors.iconBg}`}>
-                                              <XCircle className={`h-5 w-5 ${categoryColors.iconColor}`} />
-                                            </div>
-                                          )}
-                                          {suggestion.category === 'improvement' && (
-                                            <div className={`flex h-10 w-10 items-center justify-center rounded-full ${categoryColors.iconBg}`}>
-                                              <TrendingUp className={`h-5 w-5 ${categoryColors.iconColor}`} />
-                                            </div>
-                                          )}
-                                        </div>
-                                        
-                                        {/* Content */}
-                                        <div className="flex-1 min-w-0">
-                                          <h4 className="text-base font-semibold text-[#F5F1E8] mb-2">{suggestion.title}</h4>
-                                          <p className="text-sm text-[#C9B896] leading-relaxed font-medium">{suggestion.description}</p>
-                                        </div>
-                                      </div>
-                                    </motion.div>
-                                  );
-                                })}
-                            </div>
-                          </CardContent>
-                        </Card>
                       </div>
 
                       {/* Right: PDF Viewer */}
-                      {file && (
-                        <div className="h-[calc(100vh-200px)] min-h-[600px]">
-                          <PDFViewer 
-                            file={file} 
-                            onDownload={() => {
-                              const url = URL.createObjectURL(file);
-                              const a = document.createElement('a');
-                              a.href = url;
-                              a.download = file.name;
-                              a.click();
-                              URL.revokeObjectURL(url);
-                            }}
-                            className="h-full"
-                          />
-                        </div>
-                      )}
+                      <div>
+                        {file && (
+                          <Card className="border border-[#8B6F47]/20 bg-gradient-to-br from-[#221410] to-[#1a0f08] shadow-xl backdrop-blur-xl">
+                            <CardContent className="p-0">
+                              <PDFViewer file={file} />
+                            </CardContent>
+                          </Card>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Full Width Recommendations */}
+                    <div className="w-full mt-8">
+                      <Card className="border border-[#8B6F47]/20 bg-gradient-to-br from-[#221410] to-[#1a0f08] shadow-xl backdrop-blur-xl">
+                        <CardContent className="p-8">
+                          <h3 className="text-xl font-semibold text-[#F5F1E8] mb-6 tracking-tight">Recommendations</h3>
+                          <div className="grid md:grid-cols-2 gap-6">
+                            {critique.suggestions
+                              .sort((a, b) => {
+                                const priorityOrder = { high: 0, medium: 1, low: 2 };
+                                return priorityOrder[a.priority] - priorityOrder[b.priority];
+                              })
+                              .map((suggestion, index) => {
+                                const categoryColors = getCategoryColor(suggestion.category);
+                                const priorityNumber = index + 1;
+                                const priorityColors = getPriorityNumberColor(suggestion.priority);
+                                return (
+                                  <motion.div
+                                    key={suggestion.id}
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: index * 0.1 }}
+                                    className={`p-5 rounded-xl ${categoryColors.accent} ${categoryColors.bg} border-t border-r border-b ${categoryColors.border} hover:shadow-lg hover:bg-[#1a0f08]/80 transition-all duration-200 h-full`}
+                                  >
+                                    <div className="flex items-start gap-4">
+                                      {/* Priority Number */}
+                                      <div className={`flex-shrink-0 flex h-8 w-8 items-center justify-center rounded-full bg-[#221410] border-2 ${priorityColors.border} font-semibold text-sm ${priorityColors.text}`}>
+                                        {priorityNumber}
+                                      </div>
+                                        
+                                      {/* Category Icon */}
+                                      <div className="flex-shrink-0 mt-0.5">
+                                        {suggestion.category === 'strength' && (
+                                          <div className={`flex h-10 w-10 items-center justify-center rounded-full ${categoryColors.iconBg}`}>
+                                            <CheckCircle2 className={`h-5 w-5 ${categoryColors.iconColor}`} />
+                                          </div>
+                                        )}
+                                        {suggestion.category === 'weakness' && (
+                                          <div className={`flex h-10 w-10 items-center justify-center rounded-full ${categoryColors.iconBg}`}>
+                                            <XCircle className={`h-5 w-5 ${categoryColors.iconColor}`} />
+                                          </div>
+                                        )}
+                                        {suggestion.category === 'improvement' && (
+                                          <div className={`flex h-10 w-10 items-center justify-center rounded-full ${categoryColors.iconBg}`}>
+                                            <TrendingUp className={`h-5 w-5 ${categoryColors.iconColor}`} />
+                                          </div>
+                                        )}
+                                      </div>
+                                        
+                                      {/* Content */}
+                                      <div className="flex-1 min-w-0">
+                                        <h4 className="text-base font-semibold text-[#F5F1E8] mb-2">{suggestion.title}</h4>
+                                        <p className="text-sm text-[#C9B896] leading-relaxed font-medium">{suggestion.description}</p>
+                                      </div>
+                                    </div>
+                                  </motion.div>
+                                );
+                              })}
+                          </div>
+                        </CardContent>
+                      </Card>
                     </div>
                   </div>
                 )}

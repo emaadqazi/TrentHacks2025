@@ -24,6 +24,36 @@ import toast from "react-hot-toast"
 import SpriteCharacter from "@/components/dashboard/SpriteCharacter"
 import XPBar from "@/components/dashboard/XPBar"
 
+// Sprite options - pixel art characters
+const SPRITE_OPTIONS = [
+  { id: 'sprite1', name: 'Sprite 1', image: '/sprite1.png' },
+  { id: 'sprite2', name: 'Sprite 2', image: '/sprite2.png' },
+  { id: 'sprite3', name: 'Sprite 3', image: '/sprite3.png' },
+];
+
+// Component to render sprite avatar
+const SpriteAvatar = ({ spriteId, size = 64 }: { spriteId: string; size?: number }) => {
+  const sprite = SPRITE_OPTIONS.find(s => s.id === spriteId) || SPRITE_OPTIONS[0];
+  
+  return (
+    <div 
+      className="rounded-lg overflow-hidden bg-[#527853]/20 flex items-center justify-center" 
+      style={{ width: size, height: size }}
+    >
+      <img 
+        src={sprite.image} 
+        alt={sprite.name}
+        className="w-full h-full object-contain"
+        onError={(e) => {
+          // Fallback if image fails to load
+          const target = e.target as HTMLImageElement;
+          target.style.display = 'none';
+        }}
+      />
+    </div>
+  );
+};
+
 interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
@@ -50,6 +80,7 @@ export default function DashboardPage() {
   const [showChat, setShowChat] = useState(false)
   const [userProfilePhoto, setUserProfilePhoto] = useState<string | null>(null)
   const [selectedSprite, setSelectedSprite] = useState<string>('sprite1')
+  const [selectedAvatar, setSelectedAvatar] = useState<string>('sprite1')
   const [jobApplicationCount, setJobApplicationCount] = useState(0)
   const chatEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -81,6 +112,7 @@ export default function DashboardPage() {
         }
         if (profile?.selectedAvatar) {
           setSelectedSprite(profile.selectedAvatar)
+          setSelectedAvatar(profile.selectedAvatar)
         }
       }).catch(console.error)
     }
@@ -301,11 +333,8 @@ export default function DashboardPage() {
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-9 w-9 rounded-full hover:bg-[#F5F1E8]/10">
-                <Avatar className="h-9 w-9">
-                  <AvatarImage src={userProfilePhoto || currentUser?.photoURL || undefined} alt={userDisplayName} />
-                  <AvatarFallback className="bg-gradient-to-br from-[#3a5f24] to-[#253f12] text-white">{userInitials}</AvatarFallback>
-                </Avatar>
+              <Button variant="ghost" className="relative h-9 w-9 rounded-lg hover:bg-[#F5F1E8]/10 p-0 overflow-hidden flex items-center justify-center">
+                <SpriteAvatar spriteId={selectedAvatar} size={36} />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56 bg-[#221410] border-[#8B6F47]/30" align="end" forceMount>

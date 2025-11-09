@@ -85,10 +85,38 @@ export const critiqueResume = async (req: Request, res: Response) => {
       });
     }
 
-    console.log('🤖 Using OpenAI for resume critique...');
+    // Extract optional parameters from query
+    const jobTitle = req.query.jobTitle as string | undefined;
+    const experienceLevel = req.query.experienceLevel as 'entry' | 'mid' | 'senior' | undefined;
     
-    // Use OpenAI for intelligent analysis
-    const critique = await critiqueResumeWithAI(pdfData.text);
+    // Auto-detect experience level if not provided
+    let detectedLevel: 'entry' | 'mid' | 'senior' = experienceLevel || 'mid';
+    
+    if (!experienceLevel) {
+      // Simple heuristic: count years of experience mentioned
+      const yearsMatch = pdfData.text.match(/(\d+)\+?\s*(years?|yrs?)/i);
+      if (yearsMatch) {
+        const years = parseInt(yearsMatch[1]);
+        if (years < 2) {
+          detectedLevel = 'entry';
+        } else if (years >= 5) {
+          detectedLevel = 'senior';
+        } else {
+          detectedLevel = 'mid';
+        }
+      }
+      console.log(`📊 Auto-detected experience level: ${detectedLevel}`);
+    }
+
+    if (jobTitle) {
+      console.log(`🎯 Target job title: ${jobTitle}`);
+    }
+    console.log(`📈 Experience level: ${detectedLevel}`);
+
+    console.log('🤖 Using OpenAI for resume critique with industry standards...');
+    
+    // Use OpenAI for intelligent analysis with criteria and reference comparison
+    const critique = await critiqueResumeWithAI(pdfData.text, jobTitle, detectedLevel);
     console.log('✅ AI critique generated, overall score:', critique.score.overall);
     
     res.json(critique);

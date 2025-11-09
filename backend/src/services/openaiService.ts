@@ -1,4 +1,6 @@
 import OpenAI from 'openai';
+import { loadEvaluationCriteria } from './criteriaService';
+import { loadReferenceResumes } from './referenceResumeService';
 
 // Get API key from environment variables (support both naming conventions)
 // Don't initialize OpenAI here - check at runtime since dotenv loads after module import
@@ -35,60 +37,89 @@ export interface ResumeCritique {
   summary: string;
 }
 
-export async function critiqueResumeWithAI(resumeText: string): Promise<ResumeCritique> {
+export async function critiqueResumeWithAI(
+  resumeText: string,
+  jobTitle?: string,
+  experienceLevel?: 'entry' | 'mid' | 'senior'
+): Promise<ResumeCritique> {
   // Get OpenAI client at runtime to ensure env vars are loaded
   const openai = getOpenAIClient();
 
-  const prompt = `You are an expert resume reviewer and career advisor. Analyze the following resume and provide a comprehensive critique.
-
-RESUME TEXT:
-${resumeText}
-
-Please provide a detailed analysis in the following JSON format:
-{
-  "score": {
-    "overall": <number between 0-100>,
-    "clarity": <number between 0-100>,
-    "impact": <number between 0-100>,
-    "atsScore": <number between 0-100>,
-    "formatting": <number between 0-100>,
-    "content": <number between 0-100>
-  },
-  "suggestions": [
-    {
-      "id": "1",
-      "category": "strength" | "weakness" | "improvement",
-      "title": "<brief title>",
-      "description": "<detailed description>",
-      "priority": "high" | "medium" | "low"
+  // Load evaluation criteria (cached after first load)
+  const { systemPrompt, criteria } = await loadEvaluationCriteria();
+  
+  // Load reference resumes based on job title
+  const referenceTexts = await loadReferenceResumes(jobTitle);
+  
+  // Determine experience level (default to 'mid' if not provided)
+  const level = experienceLevel || 'mid';
+  
+  // Extract scoring weights from criteria JSON if available
+  let weightInfo = '';
+  if (criteria?.resume_evaluation_criteria?.weight_distribution) {
+    const weights = criteria.resume_evaluation_criteria.weight_distribution;
+    const levelKey = level === 'entry' ? 'entry_level' : level === 'senior' ? 'senior' : 'mid_level';
+    const levelWeights = weights[levelKey];
+    
+    if (levelWeights) {
+      weightInfo = `\n\nScoring Weights for ${level} level:\n${JSON.stringify(levelWeights, null, 2)}`;
     }
-  ],
-  "strengths": ["<strength 1>", "<strength 2>", ...],
-  "weaknesses": ["<weakness 1>", "<weakness 2>", ...],
-  "summary": "<2-3 sentence summary of the resume quality and main areas for improvement>"
-}
+  }
 
-Scoring Guidelines:
-- **Overall**: Overall resume quality (0-100)
-- **Clarity**: How clear and easy to read the resume is (structure, formatting, organization)
-- **Impact**: How impactful the resume is (quantifiable achievements, strong action verbs, compelling descriptions)
-- **ATS Score**: How well optimized the resume is for Applicant Tracking Systems (keywords, format compatibility, parsing)
-- **Formatting**: Visual presentation and professional appearance
-- **Content**: Quality and completeness of content (sections, details, relevance)
-
-Evaluation Criteria:
-1. Contact information completeness
-2. Professional summary/objective quality
-3. Work experience with quantifiable achievements
-4. Education section completeness
-5. Skills section relevance and organization
-6. Use of action verbs
-7. Quantifiable metrics and results
-8. ATS optimization (keywords, formatting)
-9. Overall structure and flow
-10. Grammar and spelling
-
-Provide 3-5 suggestions with priorities. Focus on actionable improvements.`;
+  // Build user message with resume text and optional reference comparison
+  let userMessage = `Evaluate this resume:\n\n${resumeText}`;
+  
+  // Add reference resume comparison if available
+  if (referenceTexts.length > 0) {
+    userMessage += `\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nCOMPARE AGAINST THESE INDUSTRY-STANDARD REFERENCE RESUMES:\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+    
+    referenceTexts.forEach((text, idx) => {
+      userMessage += `--- Reference Resume ${idx + 1} (Industry Standard) ---\n${text}\n\n`;
+    });
+    
+    userMessage += `COMPARISON INSTRUCTIONS:\n`;
+    userMessage += `- Compare the user's resume against these industry-standard examples\n`;
+    userMessage += `- Identify specific gaps where the user's resume falls short compared to these references\n`;
+    userMessage += `- Highlight what successful resumes do that the user's resume is missing\n`;
+    userMessage += `- Provide concrete examples from the reference resumes that the user should emulate\n`;
+    userMessage += `- Be specific about formatting, structure, content depth, and impact metrics\n\n`;
+  }
+  
+  // Add experience level and job title context
+  userMessage += `Experience Level: ${level}\n`;
+  if (jobTitle) {
+    userMessage += `Target Role: ${jobTitle}\n`;
+  }
+  
+  // Add weight information if available
+  if (weightInfo) {
+    userMessage += weightInfo;
+  }
+  
+  userMessage += `\n\nUse the evaluation framework from the system prompt. Apply the scoring weights for ${level} level from the criteria.`;
+  userMessage += `\n\nPlease provide a detailed analysis in the following JSON format:\n`;
+  userMessage += `{\n`;
+  userMessage += `  "score": {\n`;
+  userMessage += `    "overall": <number between 0-100>,\n`;
+  userMessage += `    "clarity": <number between 0-100>,\n`;
+  userMessage += `    "impact": <number between 0-100>,\n`;
+  userMessage += `    "atsScore": <number between 0-100>,\n`;
+  userMessage += `    "formatting": <number between 0-100>,\n`;
+  userMessage += `    "content": <number between 0-100>\n`;
+  userMessage += `  },\n`;
+  userMessage += `  "suggestions": [\n`;
+  userMessage += `    {\n`;
+  userMessage += `      "id": "1",\n`;
+  userMessage += `      "category": "strength" | "weakness" | "improvement",\n`;
+  userMessage += `      "title": "<brief title>",\n`;
+  userMessage += `      "description": "<detailed description with specific examples from reference resumes when applicable>",\n`;
+  userMessage += `      "priority": "high" | "medium" | "low"\n`;
+  userMessage += `    }\n`;
+  userMessage += `  ],\n`;
+  userMessage += `  "strengths": ["<strength 1>", "<strength 2>", ...],\n`;
+  userMessage += `  "weaknesses": ["<weakness 1>", "<weakness 2>", ...],\n`;
+  userMessage += `  "summary": "<2-3 sentence summary comparing against industry standards>"\n`;
+  userMessage += `}`;
 
   try {
     const completion = await openai.chat.completions.create({
@@ -96,11 +127,11 @@ Provide 3-5 suggestions with priorities. Focus on actionable improvements.`;
       messages: [
         {
           role: 'system',
-          content: 'You are an expert resume reviewer. Always respond with valid JSON only, no additional text.',
+          content: systemPrompt || 'You are an expert resume reviewer. Always respond with valid JSON only, no additional text.',
         },
         {
           role: 'user',
-          content: prompt,
+          content: userMessage,
         },
       ],
       temperature: 0.3, // Lower temperature for more consistent scoring
