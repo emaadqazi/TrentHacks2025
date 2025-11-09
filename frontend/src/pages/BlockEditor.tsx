@@ -17,7 +17,7 @@ export default function BlockEditor() {
   const [resumeMetadata, setResumeMetadata] = useState<UserResume | null>(null)
   const [resume, setResume] = useState<Resume | null>(null)
   const [jobDescription, setJobDescription] = useState<JobDescription | null>(null)
-  const [suggestions] = useState<SuggestionBlock[]>([])
+  const [suggestions, setSuggestions] = useState<SuggestionBlock[]>([])
   const [matchAnalysis] = useState<MatchAnalysis | null>(null)
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -75,19 +75,9 @@ export default function BlockEditor() {
     setJobDescription(jd)
     // TODO: Call API to analyze JD and generate suggestions
     // For now, we'll mock some AI suggestions
-    setAiSuggestions({
-      skills: ['React', 'TypeScript', 'Node.js', 'Python', 'AWS'],
-      summary: [
-        'Experienced software engineer with expertise in full-stack development',
-        'Passionate about building scalable web applications',
-        'Strong problem-solving and collaboration skills'
-      ],
-      bullets: [
-        { text: 'Developed and maintained React applications', sectionType: 'experience' },
-        { text: 'Implemented RESTful APIs using Node.js', sectionType: 'experience' },
-        { text: 'Collaborated with cross-functional teams', sectionType: 'experience' }
-      ]
-    })
+    // TODO: Update suggestions state when API is implemented
+    // For now, this is a placeholder - suggestions will be populated via API
+    console.log('Job description analyzed, suggestions will be generated via API')
     console.log("Analyzing job description:", jd)
   }
 
