@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -22,18 +23,20 @@ import {
   Trash2,
   Upload,
   LogOut,
+  Loader2,
 } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
-
-const recentResumes = [
-  { id: 1, title: "Software Engineer Resume", date: "2 days ago", template: "Modern Minimal" },
-  { id: 2, title: "Product Manager CV", date: "1 week ago", template: "ATS-Optimized" },
-  { id: 3, title: "Marketing Resume", date: "2 weeks ago", template: "Jake's Classic" },
-]
+import { NewResumeModal } from "@/components/modals/NewResumeModal"
+import toast from "react-hot-toast"
+import { getUserResumes, createResume, deleteResume as deleteResumeFromFirestore } from "@/lib/firestore"
+import type { UserResume } from "@/lib/firestore"
 
 export default function DashboardPage() {
   const { currentUser, logout } = useAuth()
   const navigate = useNavigate()
+  const [isNewResumeModalOpen, setIsNewResumeModalOpen] = useState(false)
+  const [resumes, setResumes] = useState<UserResume[]>([])
+  const [loading, setLoading] = useState(true)
 
   const userDisplayName = currentUser?.displayName || currentUser?.email?.split('@')[0] || 'User'
   const userEmail = currentUser?.email || ''
@@ -43,6 +46,90 @@ export default function DashboardPage() {
     .join('')
     .toUpperCase()
     .slice(0, 2) || 'U'
+
+  // Load resumes from Firestore on mount
+  useEffect(() => {
+    async function loadResumes() {
+      if (currentUser) {
+        try {
+          setLoading(true)
+          const userResumes = await getUserResumes(currentUser.uid)
+          setResumes(userResumes)
+        } catch (error) {
+          console.error('Error loading resumes:', error)
+          toast.error('Failed to load resumes')
+        } finally {
+          setLoading(false)
+        }
+      } else {
+        setLoading(false)
+      }
+    }
+    loadResumes()
+  }, [currentUser])
+
+  const handleCreateResume = async (resumeData: { title: string; targetRole?: string; goals?: string; createdAt: string; template?: string }) => {
+    if (!currentUser) {
+      toast.error('You must be logged in to create a resume')
+      return ''
+    }
+
+    try {
+      const resumeId = await createResume(currentUser.uid, {
+        title: resumeData.title,
+        targetRole: resumeData.targetRole,
+        goals: resumeData.goals,
+        template: resumeData.template,
+      })
+      
+      // Reload resumes
+      const updatedResumes = await getUserResumes(currentUser.uid)
+      setResumes(updatedResumes)
+      
+      toast.success('Resume created successfully!')
+      return resumeId
+    } catch (error: any) {
+      console.error('Error creating resume:', error)
+      
+      // Show the actual error message
+      const errorMessage = error?.message || error?.code || 'Unknown error'
+      toast.error(`Failed to create resume: ${errorMessage}`)
+      return ''
+    }
+  }
+
+  const handleDeleteResume = async (id: string) => {
+    try {
+      await deleteResumeFromFirestore(id)
+      setResumes(prev => prev.filter(r => r.id !== id))
+      toast.success('Resume deleted')
+    } catch (error) {
+      console.error('Error deleting resume:', error)
+      toast.error('Failed to delete resume')
+    }
+  }
+
+  const getRelativeTime = (dateString: string | any) => {
+    // Handle Firestore Timestamp
+    let date: Date
+    if (typeof dateString === 'string') {
+      date = new Date(dateString)
+    } else if (dateString?.toDate) {
+      date = dateString.toDate()
+    } else {
+      date = new Date()
+    }
+    
+    const now = new Date()
+    const diffInMs = now.getTime() - date.getTime()
+    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24))
+    
+    if (diffInDays === 0) return 'Today'
+    if (diffInDays === 1) return 'Yesterday'
+    if (diffInDays < 7) return `${diffInDays} days ago`
+    if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} week${Math.floor(diffInDays / 7) > 1 ? 's' : ''} ago`
+    return `${Math.floor(diffInDays / 30)} month${Math.floor(diffInDays / 30) > 1 ? 's' : ''} ago`
+  }
 
   const handleLogout = async () => {
     try {
@@ -123,16 +210,20 @@ export default function DashboardPage() {
           <aside className="space-y-6">
             <Card className="border-2 border-[#8B6F47]/30 bg-[#221410]/90 backdrop-blur-xl">
               <CardContent className="p-4 space-y-3">
-                <Link to="/editor" className="block">
-                  <Button
-                    className="w-full justify-start gap-2 bg-gradient-to-r from-[#3a5f24] to-[#253f12] text-white hover:from-[#4a7534] hover:to-[#355222]"
-                    size="lg"
-                  >
-                    <Plus className="h-5 w-5" />
-                    New Resume
-                  </Button>
-                </Link>
-                <Button variant="outline" className="w-full justify-start gap-2 bg-[#18100a]/60 border-[#8B6F47]/30 text-[#F5F1E8] hover:bg-[#3a5f24]/20 hover:border-[#3a5f24]/50" size="default">
+                <Button
+                  onClick={() => setIsNewResumeModalOpen(true)}
+                  className="w-full justify-start gap-2 bg-gradient-to-r from-[#3a5f24] to-[#253f12] text-white hover:from-[#4a7534] hover:to-[#355222]"
+                  size="lg"
+                >
+                  <Plus className="h-5 w-5" />
+                  New Resume
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start gap-2 bg-[#18100a]/60 border-[#8B6F47]/30 text-[#F5F1E8] hover:bg-[#3a5f24]/20 hover:border-[#3a5f24]/50" 
+                  size="default"
+                  onClick={() => setIsNewResumeModalOpen(true)}
+                >
                   <Upload className="h-4 w-4" />
                   Upload Resume
                 </Button>
@@ -166,16 +257,23 @@ export default function DashboardPage() {
             </Card>
           </aside>
 
-          {/* Main Content */}
-          <main className="space-y-6">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight text-[#F5F1E8] mb-2">My Resumes</h1>
-              <p className="text-[#C9B896]">Manage and edit your resume collection</p>
-            </div>
+              {/* Main Content */}
+              <main className="space-y-6">
+                <div>
+                  <h1 className="text-3xl font-bold tracking-tight text-[#F5F1E8] mb-2">My Resumes</h1>
+                  <p className="text-[#C9B896]">Manage and edit your resume collection</p>
+                </div>
 
-            {recentResumes.length > 0 ? (
-              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {recentResumes.map((resume) => (
+                {loading ? (
+                  <Card className="border-2 border-[#8B6F47]/30 bg-[#221410]/90 backdrop-blur-xl">
+                    <CardContent className="flex flex-col items-center justify-center py-16">
+                      <Loader2 className="h-10 w-10 animate-spin text-[#3a5f24] mb-4" />
+                      <p className="text-[#C9B896]">Loading your resumes...</p>
+                    </CardContent>
+                  </Card>
+                ) : resumes.length > 0 ? (
+                  <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                    {resumes.map((resume) => (
                   <Card key={resume.id} className="group border-2 border-[#8B6F47]/30 overflow-hidden transition-all hover:shadow-xl hover:shadow-[#3a5f24]/10 bg-[#221410]/90 backdrop-blur-xl">
                     <div className="aspect-[8.5/11] bg-[#18100a]/60 border-b border-[#8B6F47]/30 relative overflow-hidden">
                       <div className="absolute inset-0 bg-gradient-to-br from-[#221410]/50 to-[#18100a] p-6">
@@ -190,48 +288,61 @@ export default function DashboardPage() {
                         </div>
                       </div>
                     </div>
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-[#F5F1E8] truncate">{resume.title}</h3>
-                          <p className="text-xs text-[#C9B896] mt-1">{resume.template}</p>
-                          <p className="text-xs text-[#C9B896]">{resume.date}</p>
-                        </div>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-[#F5F1E8]/10 text-[#C9B896] hover:text-[#F5F1E8]">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="bg-[#221410] border-[#8B6F47]/30">
-                            <DropdownMenuItem className="text-[#F5F1E8] focus:bg-[#3a5f24]/20 focus:text-[#F5F1E8]">
-                              <Pencil className="mr-2 h-4 w-4" />
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-semibold text-[#F5F1E8] truncate">{resume.title}</h3>
+                              {resume.targetRole && (
+                                <p className="text-xs text-[#C9B896] mt-1">{resume.targetRole}</p>
+                              )}
+                              {resume.template && (
+                                <p className="text-xs text-[#C9B896]">{resume.template}</p>
+                              )}
+                              <p className="text-xs text-[#C9B896]">{getRelativeTime(resume.createdAt)}</p>
+                            </div>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-[#F5F1E8]/10 text-[#C9B896] hover:text-[#F5F1E8]">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="bg-[#221410] border-[#8B6F47]/30">
+                                <DropdownMenuItem 
+                                  className="text-[#F5F1E8] focus:bg-[#3a5f24]/20 focus:text-[#F5F1E8]"
+                                  onClick={() => navigate(`/editor/${resume.id}`)}
+                                >
+                                  <Pencil className="mr-2 h-4 w-4" />
+                                  Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem className="text-[#F5F1E8] focus:bg-[#3a5f24]/20 focus:text-[#F5F1E8]">
+                                  <Download className="mr-2 h-4 w-4" />
+                                  Download
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator className="bg-[#8B6F47]/30" />
+                                <DropdownMenuItem 
+                                  className="text-red-400 focus:bg-red-500/20 focus:text-red-400"
+                                  onClick={() => handleDeleteResume(resume.id)}
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                          <div className="mt-4 flex gap-2">
+                            <Button 
+                              size="sm" 
+                              className="flex-1 bg-gradient-to-r from-[#3a5f24] to-[#253f12] text-white hover:from-[#4a7534] hover:to-[#355222]"
+                              onClick={() => navigate(`/editor/${resume.id}`)}
+                            >
+                              <Pencil className="mr-2 h-3 w-3" />
                               Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="text-[#F5F1E8] focus:bg-[#3a5f24]/20 focus:text-[#F5F1E8]">
-                              <Download className="mr-2 h-4 w-4" />
-                              Download
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator className="bg-[#8B6F47]/30" />
-                            <DropdownMenuItem className="text-red-400 focus:bg-red-500/20 focus:text-red-400">
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                      <div className="mt-4 flex gap-2">
-                        <Link to="/editor" className="flex-1">
-                          <Button size="sm" className="w-full bg-gradient-to-r from-[#3a5f24] to-[#253f12] text-white hover:from-[#4a7534] hover:to-[#355222]">
-                            <Pencil className="mr-2 h-3 w-3" />
-                            Edit
-                          </Button>
-                        </Link>
-                        <Button size="sm" variant="outline" className="border-[#8B6F47]/30 text-[#C9B896] hover:bg-[#3a5f24]/20 hover:text-[#F5F1E8] hover:border-[#3a5f24]/50">
-                          <Download className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </CardContent>
+                            </Button>
+                            <Button size="sm" variant="outline" className="border-[#8B6F47]/30 text-[#C9B896] hover:bg-[#3a5f24]/20 hover:text-[#F5F1E8] hover:border-[#3a5f24]/50">
+                              <Download className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </CardContent>
                   </Card>
                 ))}
               </div>
@@ -246,13 +357,18 @@ export default function DashboardPage() {
                     Start building your first resume or upload an existing one to get started
                   </p>
                   <div className="flex gap-3">
-                    <Link to="/editor">
-                      <Button className="bg-gradient-to-r from-[#3a5f24] to-[#253f12] text-white hover:from-[#4a7534] hover:to-[#355222]">
-                        <Plus className="mr-2 h-4 w-4" />
-                        Create New Resume
-                      </Button>
-                    </Link>
-                    <Button variant="outline" className="border-[#8B6F47]/30 text-[#C9B896] hover:bg-[#3a5f24]/20 hover:text-[#F5F1E8] hover:border-[#3a5f24]/50">
+                    <Button 
+                      onClick={() => setIsNewResumeModalOpen(true)}
+                      className="bg-gradient-to-r from-[#3a5f24] to-[#253f12] text-white hover:from-[#4a7534] hover:to-[#355222]"
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      Create New Resume
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="border-[#8B6F47]/30 text-[#C9B896] hover:bg-[#3a5f24]/20 hover:text-[#F5F1E8] hover:border-[#3a5f24]/50"
+                      onClick={() => setIsNewResumeModalOpen(true)}
+                    >
                       <Upload className="mr-2 h-4 w-4" />
                       Upload Resume
                     </Button>
@@ -263,6 +379,13 @@ export default function DashboardPage() {
           </main>
         </div>
       </div>
+
+      {/* New Resume Modal */}
+      <NewResumeModal 
+        isOpen={isNewResumeModalOpen} 
+        onClose={() => setIsNewResumeModalOpen(false)}
+        onCreateResume={handleCreateResume}
+      />
     </div>
   )
 }

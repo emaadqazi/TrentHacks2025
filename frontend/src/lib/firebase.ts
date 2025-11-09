@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getStorage } from 'firebase/storage';
+import { getFirestore } from 'firebase/firestore';
 
 // Your Firebase config - Replace these with your actual Firebase project config
 // You can find these in Firebase Console > Project Settings > General > Your apps
@@ -38,6 +39,9 @@ export const auth = getAuth(app);
 
 // Initialize Cloud Storage and get a reference to the service
 export const storage = getStorage(app);
+
+// Initialize Firestore and get a reference to the service
+export const db = getFirestore(app);
 
 export default app;
 

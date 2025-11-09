@@ -303,7 +303,7 @@ export default function LandingAuthPage() {
                       required
                       minLength={6}
                       disabled={loading}
-                      className="bg-[#18100a]/60 border-[#8B6F47]/30 text-[#F5F1E8] placeholder:text-[#8B6F47] focus:border-[#3a5f24] focus:ring-[#3a5f24]"
+                      className="bg-[#18100a]/60 border-[#8B6F47]/30 text-[#F5F1E8] placeholder:text-[#8B6F47] focus:border-[#4A7C2C] focus:ring-[#4A7C2C]"
                     />
                   </div>
 

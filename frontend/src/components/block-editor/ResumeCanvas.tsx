@@ -265,18 +265,18 @@ export default function ResumeCanvas({ resume, setResume, selectedBlockId, onBlo
   if (!localResume) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
-        <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-muted">
-          <FileUp className="h-10 w-10 text-muted-foreground" />
+        <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-[#3a5f24]/20">
+          <FileUp className="h-10 w-10 text-[#3a5f24]" />
         </div>
-        <h3 className="mb-2 text-lg font-semibold">No Resume Loaded</h3>
-        <p className="mb-6 text-sm text-muted-foreground max-w-sm">
+        <h3 className="mb-2 text-lg font-semibold text-[#F5F1E8]">No Resume Loaded</h3>
+        <p className="mb-6 text-sm text-[#C9B896] max-w-sm">
           Start by loading a sample resume or uploading your own
         </p>
         <div className="flex gap-3">
-          <Button onClick={handleLoadSample}>
+          <Button onClick={handleLoadSample} className="bg-gradient-to-r from-[#3a5f24] to-[#253f12] text-white hover:from-[#4a7534] hover:to-[#355222]">
             Load Sample Resume
           </Button>
-          <Button variant="outline">
+          <Button variant="outline" className="border-[#8B6F47]/30 text-[#C9B896] hover:bg-[#3a5f24]/20 hover:text-[#F5F1E8] hover:border-[#3a5f24]/50">
             <FileUp className="mr-2 h-4 w-4" />
             Upload Resume
           </Button>
@@ -308,7 +308,7 @@ export default function ResumeCanvas({ resume, setResume, selectedBlockId, onBlo
         </Droppable>
       </DragDropContext>
 
-      <Button variant="outline" className="w-full" onClick={handleAddSection}>
+      <Button variant="outline" className="w-full border-[#8B6F47]/30 text-[#C9B896] hover:bg-[#3a5f24]/20 hover:text-[#F5F1E8] hover:border-[#3a5f24]/50" onClick={handleAddSection}>
         <Plus className="mr-2 h-4 w-4" />
         Add Section
       </Button>
