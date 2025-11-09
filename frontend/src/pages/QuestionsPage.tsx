@@ -364,8 +364,15 @@ export default function QuestionsPage() {
             <span className="text-xl font-bold text-[#F5F1E8]">ResuBlocks</span>
           </Link>
           <div className="hidden md:flex items-center gap-6 absolute left-1/2 transform -translate-x-1/2">
-            <Link to="/dashboard" className="text-sm font-medium text-[#C9B896] hover:text-[#F5F1E8] transition-colors">
-              My Resumes
+            <Link 
+              to="/dashboard" 
+              onClick={(e) => {
+                e.preventDefault();
+                navigate('/dashboard', { state: { skipAnimation: true } });
+              }}
+              className="text-sm font-medium text-[#C9B896] hover:text-[#F5F1E8] transition-colors"
+            >
+              Home
             </Link>
             <Link
               to="/critique"

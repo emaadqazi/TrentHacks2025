@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -59,6 +59,8 @@ const templates = [
 ]
 
 export default function TemplatesPage() {
+  const navigate = useNavigate()
+  
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#18100a] via-[#221410] to-[#0f0b08]">
       {/* Wood grain texture overlay */}
@@ -80,9 +82,13 @@ export default function TemplatesPage() {
             <div className="hidden md:flex items-center gap-6">
               <Link
                 to="/dashboard"
+                onClick={(e) => {
+                  e.preventDefault();
+                  navigate('/dashboard', { state: { skipAnimation: true } });
+                }}
                 className="text-sm font-medium text-[#C9B896] hover:text-[#F5F1E8] transition-colors"
               >
-                My Resumes
+                Home
               </Link>
               <Link to="/templates" className="text-sm font-medium text-[#F5F1E8]">
                 Templates

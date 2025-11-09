@@ -141,6 +141,9 @@ export default function ProfilePage() {
       }
       
       toast.success('Profile saved successfully!');
+      
+      // Navigate back to dashboard without animation
+      navigate('/dashboard', { state: { skipAnimation: true } });
     } catch (error) {
       console.error('Error saving profile:', error);
       toast.error('Failed to save profile');
@@ -295,8 +298,15 @@ export default function ProfilePage() {
             <span className="text-xl font-bold text-[#F5F1E8]">ResuBlocks</span>
           </Link>
           <div className="hidden md:flex items-center gap-6 absolute left-1/2 transform -translate-x-1/2">
-            <Link to="/dashboard" className="text-sm font-medium text-[#C9B896] hover:text-[#F5F1E8] transition-colors">
-              My Resumes
+            <Link 
+              to="/dashboard" 
+              onClick={(e) => {
+                e.preventDefault();
+                navigate('/dashboard', { state: { skipAnimation: true } });
+              }}
+              className="text-sm font-medium text-[#C9B896] hover:text-[#F5F1E8] transition-colors"
+            >
+              Home
             </Link>
             <Link
               to="/critique"
@@ -339,7 +349,6 @@ export default function ProfilePage() {
               >
                 Profile Settings
               </DropdownMenuItem>
-              <DropdownMenuItem className="text-[#F5F1E8] focus:bg-[#3a5f24]/20 focus:text-[#F5F1E8]">Billing</DropdownMenuItem>
               <DropdownMenuSeparator className="bg-[#8B6F47]/30" />
               <DropdownMenuItem onClick={handleLogout} className="text-[#F5F1E8] focus:bg-[#3a5f24]/20 focus:text-[#F5F1E8]">
                 <LogOut className="mr-2 h-4 w-4" />
@@ -488,8 +497,7 @@ export default function ProfilePage() {
               <div className="flex justify-end gap-4 pt-4 border-t border-[#8B6F47]/30">
                 <Button
                   onClick={() => navigate('/dashboard')}
-                  variant="outline"
-                  className="border-[#8B6F47]/50 text-[#F5F1E8] hover:bg-[#3a5f24]/20"
+                  className="bg-[#8B6F47]/30 text-[#F5F1E8] hover:bg-[#8B6F47]/50 border border-[#8B6F47]"
                 >
                   Cancel
                 </Button>
