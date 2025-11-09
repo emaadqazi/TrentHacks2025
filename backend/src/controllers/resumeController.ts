@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { parseTextToBlocks } from '../services/pdfParser';
+import { parseTextToResume } from '../services/pdfParser';
 
 export const uploadResume = async (req: Request, res: Response) => {
   try {
@@ -21,24 +21,31 @@ export const uploadResume = async (req: Request, res: Response) => {
     }
 
     console.log('✅ Extracted text, length:', pdfData.text.length);
+    console.log('📄 First 500 chars of text:', pdfData.text.substring(0, 500));
 
-    // Parse into sections
-    const sections = parseTextToBlocks(pdfData.text);
+    // Parse into component-based structure
+    const parsedResume = parseTextToResume(pdfData.text);
 
-    const totalBlocks = sections.reduce((sum, section) => {
-      const sectionBlocks = section.blocks.length;
-      const subsectionBlocks = section.subsections?.reduce((subSum, sub) => subSum + sub.blocks.length, 0) || 0;
-      return sum + sectionBlocks + subsectionBlocks;
-    }, 0);
+    console.log('📦 Parsed resume object:', JSON.stringify(parsedResume, null, 2));
 
-    console.log('✅ Parsed into', sections.length, 'sections,', totalBlocks, 'blocks');
+    const totalEntries = 
+      parsedResume.experience.length + 
+      parsedResume.education.length + 
+      parsedResume.skills.length +
+      parsedResume.projects.length;
+
+    console.log('✅ Parsed resume:', {
+      experience: parsedResume.experience.length,
+      education: parsedResume.education.length,
+      skills: parsedResume.skills.length,
+      projects: parsedResume.projects.length
+    });
 
     res.json({
       success: true,
-      sections,
+      ...parsedResume,
       metadata: {
-        totalSections: sections.length,
-        totalBlocks,
+        totalEntries,
         pages: pdfData.numpages,
       }
     });

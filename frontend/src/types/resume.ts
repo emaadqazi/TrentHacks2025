@@ -1,72 +1,94 @@
-// Core resume data types (from block-editor)
+// Component-based resume types - replacing block editor structure
 
-export type BlockStrength = "good" | "ok" | "weak"
-export type SectionType = "education" | "experience" | "projects" | "skills" | "summary" | "custom"
-export type BlockType = "bullet" | "header" | "meta" | "skill-item"
-
-export interface Block {
-  id: string
-  type: BlockType
-  text: string
-  score?: number // 0-100 relevance vs JD
-  strength?: BlockStrength // for color-coding
-  tags?: string[] // extracted keywords
-}
-
-export interface Section {
-  id: string
-  type: SectionType
-  label: string // e.g. "Experience", "Education"
-  blocks: Block[]
-  order: number
-  subsections?: SubSection[] // For jobs within Experience, projects within Projects, etc.
-}
-
-export interface SubSection {
-  id: string
-  title: string // e.g. "Dominarlo - Software Developer"
-  blocks: Block[]
-  order: number
-}
-
+// Core resume structure - component-based
 export interface Resume {
   id: string
+  userId: string
   title: string
-  sections: Section[]
-  createdAt?: Date
-  updatedAt?: Date
+  createdAt: Date
+  updatedAt: Date
+  
+  // Contact header
+  header: ContactHeader
+  
+  // Education entries (similar to experience)
+  education: EducationEntry[]
+  
+  // Skills organized by category
+  skills: SkillCategory[]
+  
+  // Work experience entries (the main focus)
+  experience: ExperienceEntry[]
+  
+  // Additional sections
+  projects?: ProjectEntry[]
+  certifications?: string[]
 }
 
-export interface SuggestionBlock {
+export interface ContactHeader {
+  name: string
+  email: string
+  phone: string
+  linkedin?: string
+  github?: string
+  website?: string
+  location?: string
+}
+
+export interface ExperienceEntry {
   id: string
-  forBlockId: string // which original bullet it's improving
-  text: string
-  score?: number
-  reason?: string // short explanation: "Uses stronger verb", etc.
-  tags?: string[]
+  company: string
+  role: string
+  location: string
+  startDate: string  // "May 2026" or "May 2026"
+  endDate: string    // "September 2027" or "Present"
+  bullets: string[]  // Array of bullet points
+  order: number      // For reordering
+  
+  // AI analytics (populated after analysis)
+  aiScore?: AIScore
 }
 
+export interface AIScore {
+  overall: number              // 0-100
+  keywordMatch: number         // 0-100
+  bulletStrengths: number[]    // One score per bullet
+  suggestions: string[]        // Improvement suggestions
+  missingKeywords: string[]    // Keywords from JD not in entry
+}
+
+export interface EducationEntry {
+  id: string
+  school: string
+  degree: string
+  field?: string
+  location: string
+  graduationDate: string
+  gpa?: string
+  order: number
+}
+
+export interface SkillCategory {
+  id: string
+  category: string  // "Languages", "Frameworks", etc.
+  skills: string[]  // ["Python", "Java", ...]
+  order: number
+}
+
+export interface ProjectEntry {
+  id: string
+  name: string
+  description: string
+  technologies: string[]
+  link?: string
+  order: number
+}
+
+// For job description analysis (future feature)
 export interface JobDescription {
   id: string
   text: string
   keywords: string[]
   requiredSkills: string[]
   preferredSkills: string[]
-}
-
-export interface ResumeVersion {
-  id: string
-  resumeId: string
-  versionName: string // e.g. "Company A - SWE Intern"
-  jobDescriptionId?: string
-  matchScore?: number
-  createdAt: Date
-}
-
-export interface MatchAnalysis {
-  overallScore: number // 0-100
-  matchedKeywords: string[]
-  missingKeywords: string[]
-  strongSections: Section[]
-  weakSections: Section[]
 }

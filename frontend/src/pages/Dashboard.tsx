@@ -28,8 +28,10 @@ import {
 import { useAuth } from "@/contexts/AuthContext"
 import { NewResumeModal } from "@/components/modals/NewResumeModal"
 import toast from "react-hot-toast"
-import { getUserResumes, createResume, deleteResume as deleteResumeFromFirestore } from "@/lib/firestore"
+import { getUserResumes, createResume, deleteResume as deleteResumeFromFirestore, createResumeFromUpload } from "@/lib/firestore"
 import type { UserResume } from "@/lib/firestore"
+import { resumeApi } from "@/services/api"
+import type { Resume } from "@/types/resume"
 
 export default function DashboardPage() {
   const { currentUser, logout } = useAuth()
@@ -37,6 +39,8 @@ export default function DashboardPage() {
   const [isNewResumeModalOpen, setIsNewResumeModalOpen] = useState(false)
   const [resumes, setResumes] = useState<UserResume[]>([])
   const [loading, setLoading] = useState(true)
+  const [isUploading, setIsUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const userDisplayName = currentUser?.displayName || currentUser?.email?.split('@')[0] || 'User'
   const userEmail = currentUser?.email || ''
@@ -160,17 +164,50 @@ export default function DashboardPage() {
       return
     }
 
+    if (!currentUser) {
+      toast.error('You must be logged in to upload a resume')
+      return
+    }
+
     setIsUploading(true)
+    const loadingToast = toast.loading('Uploading and parsing resume...')
 
     try {
-      const data = await resumeApi.uploadResume(file)
-      console.log('Resume uploaded successfully:', data)
-      toast.success('Resume uploaded successfully!')
-      // Could navigate to editor or update resume list here
+      // 1. Upload PDF to backend and get parsed data
+      const parsedData = await resumeApi.uploadResume(file)
+      console.log('Resume parsed successfully:', parsedData)
+
+      // 2. Convert backend response to Resume format
+      const resumeData: Resume = {
+        id: '',
+        userId: currentUser.uid,
+        title: parsedData.header?.name || file.name.replace(/\.pdf$/i, ''),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        header: parsedData.header || {
+          name: '',
+          email: '',
+          phone: ''
+        },
+        experience: parsedData.experience || [],
+        education: parsedData.education || [],
+        skills: parsedData.skills || [],
+        projects: parsedData.projects || [],
+        certifications: parsedData.certifications || []
+      }
+
+      // 3. Save to Firestore
+      const resumeId = await createResumeFromUpload(currentUser.uid, resumeData, file.name)
+      console.log('Resume saved to Firestore:', resumeId)
+
+      toast.success('Resume uploaded and parsed successfully!', { id: loadingToast })
+      
+      // 4. Navigate to editor
+      navigate(`/editor/${resumeId}`)
     } catch (error: any) {
       console.error('Upload error:', error)
       const errorMessage = error?.message || 'Failed to upload resume'
-      toast.error(errorMessage)
+      toast.error(errorMessage, { id: loadingToast })
     } finally {
       setIsUploading(false)
       // Reset the input
@@ -262,10 +299,15 @@ export default function DashboardPage() {
                   variant="outline" 
                   className="w-full justify-start gap-2 bg-[#18100a]/60 border-[#8B6F47]/30 text-[#F5F1E8] hover:bg-[#3a5f24]/20 hover:border-[#3a5f24]/50" 
                   size="default"
-                  onClick={() => setIsNewResumeModalOpen(true)}
+                  onClick={handleUploadClick}
+                  disabled={isUploading}
                 >
-                  <Upload className="h-4 w-4" />
-                  Upload Resume
+                  {isUploading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Upload className="h-4 w-4" />
+                  )}
+                  {isUploading ? 'Uploading...' : 'Upload Resume'}
                 </Button>
               </CardContent>
             </Card>
@@ -407,10 +449,15 @@ export default function DashboardPage() {
                     <Button 
                       variant="outline" 
                       className="border-[#8B6F47]/30 text-[#C9B896] hover:bg-[#3a5f24]/20 hover:text-[#F5F1E8] hover:border-[#3a5f24]/50"
-                      onClick={() => setIsNewResumeModalOpen(true)}
+                      onClick={handleUploadClick}
+                      disabled={isUploading}
                     >
-                      <Upload className="mr-2 h-4 w-4" />
-                      Upload Resume
+                      {isUploading ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Upload className="mr-2 h-4 w-4" />
+                      )}
+                      {isUploading ? 'Uploading...' : 'Upload Resume'}
                     </Button>
                   </div>
                 </CardContent>
@@ -425,6 +472,15 @@ export default function DashboardPage() {
         isOpen={isNewResumeModalOpen} 
         onClose={() => setIsNewResumeModalOpen(false)}
         onCreateResume={handleCreateResume}
+      />
+
+      {/* Hidden File Input for PDF Upload */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".pdf"
+        className="hidden"
+        onChange={handleFileChange}
       />
     </div>
   )

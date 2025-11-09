@@ -1,38 +1,71 @@
 const { v4: uuidv4 } = require('uuid');
 
-// Block type definition to match frontend
-export interface Block {
-  id: string;
-  type: 'bullet' | 'header' | 'meta' | 'skill-item';
-  text: string;
-  score?: number;
-  strength?: 'good' | 'ok' | 'weak';
-  tags?: string[];
+// Component-based resume types
+export interface ContactHeader {
+  name: string;
+  email: string;
+  phone: string;
+  linkedin?: string;
+  github?: string;
+  website?: string;
+  location?: string;
 }
 
-export interface SubSection {
+export interface ExperienceEntry {
   id: string;
-  title: string;
-  blocks: Block[];
+  company: string;
+  role: string;
+  location: string;
+  startDate: string;
+  endDate: string;
+  bullets: string[];
   order: number;
 }
 
-export interface Section {
+export interface EducationEntry {
   id: string;
-  type: 'education' | 'experience' | 'projects' | 'skills' | 'summary' | 'custom';
-  label: string;
-  blocks: Block[];
+  school: string;
+  degree: string;
+  field?: string;
+  location: string;
+  graduationDate: string;
+  gpa?: string;
   order: number;
-  subsections?: SubSection[];
+}
+
+export interface SkillCategory {
+  id: string;
+  category: string;
+  skills: string[];
+  order: number;
+}
+
+export interface ProjectEntry {
+  id: string;
+  name: string;
+  description: string;
+  technologies: string[];
+  link?: string;
+  order: number;
+}
+
+export interface ParsedResume {
+  header: ContactHeader;
+  education: EducationEntry[];
+  experience: ExperienceEntry[];
+  skills: SkillCategory[];
+  projects: ProjectEntry[];
+  certifications: string[];
 }
 
 const BULLET_PREFIXES = ['•', '◦', '▪', '○', '●', '-', '–', '—', '*'];
+
 const SECTION_KEYWORDS = {
-  experience: ['experience', 'work history', 'employment', 'professional experience'],
+  experience: ['experience', 'work history', 'employment', 'professional experience', 'work experience'],
   education: ['education', 'academic', 'degree'],
   skills: ['skills', 'technical skills', 'competencies', 'technologies'],
   projects: ['projects', 'portfolio'],
-  summary: ['summary', 'profile', 'objective', 'about'],
+  certifications: ['certifications', 'certificates', 'credentials'],
 };
 
 /**
@@ -42,13 +75,10 @@ function isBulletLine(line: string): boolean {
   if (!line) return false;
   const trimmed = line.trim();
   
-  // Check for explicit bullet characters
   for (const prefix of BULLET_PREFIXES) {
-    if (trimmed.startsWith(prefix)) return true;
-    if (trimmed.startsWith(`${prefix} `)) return true;
+    if (trimmed.startsWith(prefix) || trimmed.startsWith(`${prefix} `)) return true;
   }
   
-  // Check for numbered bullets (1. 2. etc)
   if (/^\d+[\.\)]\s/.test(trimmed)) return true;
   
   return false;
@@ -59,354 +89,367 @@ function isBulletLine(line: string): boolean {
  */
 function cleanBulletText(line: string): string {
   let cleaned = line.trim();
-  
-  // Remove bullet characters
   cleaned = cleaned.replace(/^[•◦▪○●\-–—\*]+\s*/, '');
-  
-  // Remove numbered bullets
   cleaned = cleaned.replace(/^\d+[\.\)]\s*/, '');
-  
   return cleaned.trim();
 }
 
 /**
- * Detect if a line is likely a section heading
+ * Detect if a line is likely a section heading (all caps, short)
  */
 function isSectionHeading(line: string): boolean {
   const trimmed = line.trim();
   
-  // Empty line
-  if (!trimmed) return false;
+  if (!trimmed || trimmed.length < 3 || trimmed.length > 50) return false;
   
-  // All caps and relatively short (typical section headings)
-  if (trimmed === trimmed.toUpperCase() && trimmed.length < 50 && trimmed.length > 2) {
-    // Exclude lines that are just abbreviations or have lots of punctuation
+  if (trimmed === trimmed.toUpperCase()) {
     const letters = trimmed.replace(/[^A-Z]/g, '');
-    if (letters.length >= 3) {
-      return true;
-    }
+    return letters.length >= 3;
   }
   
   return false;
 }
 
 /**
- * Detect if a line is a date or date range (e.g., "Sept 2024 - Apr 2025", "May 2024 – Sept 2024")
+ * Detect if a line contains a date or date range
  */
 function isDateLine(line: string): boolean {
   const trimmed = line.trim();
-  
-  // Match various date patterns
   const datePatterns = [
     /\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\s+\d{4}/i,
     /\b\d{4}\s*[-–—]\s*\d{4}\b/,
     /\b\d{4}\s*[-–—]\s*(Present|Current)/i,
     /\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\s+\d{4}\s*[-–—]/i,
   ];
-  
   return datePatterns.some(pattern => pattern.test(trimmed));
 }
 
 /**
- * Detect if a line is a job/company header (contains | separators or is bold-looking)
+ * Extract date range from a line (returns {startDate, endDate})
  */
-function isJobHeader(line: string): boolean {
-  const trimmed = line.trim();
+function extractDates(line: string): { startDate: string; endDate: string } | null {
+  const dateRangePattern = /(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\s+\d{4}\s*[-–—]\s*(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\s+\d{4}|(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\s+\d{4}\s*[-–—]\s*(Present|Current)/i;
+  const match = line.match(dateRangePattern);
   
-  // Contains pipe separators (e.g., "Company | Tech1 | Tech2")
-  if (trimmed.includes('|') && trimmed.length < 150) {
-    return true;
+  if (match) {
+    const parts = match[0].split(/[-–—]/);
+    return {
+      startDate: parts[0].trim(),
+      endDate: parts[1].trim()
+    };
   }
   
-  // Short line with capitals at the start (likely a company or job title)
-  if (trimmed.length < 100 && trimmed.length > 5) {
-    // Check if it starts with capital letter and doesn't end with period
-    if (/^[A-Z]/.test(trimmed) && !trimmed.endsWith('.') && !trimmed.includes(',')) {
-      // Not a date and not a bullet
-      if (!isDateLine(trimmed) && !isBulletLine(trimmed)) {
-        return true;
-      }
-    }
+  // Try single date for education
+  const singleDatePattern = /(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\s+\d{4}|Summer\s+\d{4}|Fall\s+\d{4}|Spring\s+\d{4}|Winter\s+\d{4}/i;
+  const singleMatch = line.match(singleDatePattern);
+  if (singleMatch) {
+    return {
+      startDate: singleMatch[0].trim(),
+      endDate: singleMatch[0].trim()
+    };
   }
   
-  return false;
+  return null;
+}
+
+/**
+ * Extract email from text
+ */
+function extractEmail(text: string): string | undefined {
+  const emailPattern = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
+  const match = text.match(emailPattern);
+  return match ? match[0] : undefined;
+}
+
+/**
+ * Extract phone from text
+ */
+function extractPhone(text: string): string | undefined {
+  const phonePattern = /\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/;
+  const match = text.match(phonePattern);
+  return match ? match[0] : undefined;
+}
+
+/**
+ * Extract LinkedIn URL
+ */
+function extractLinkedIn(text: string): string | undefined {
+  const linkedInPattern = /linkedin\.com\/in\/[a-zA-Z0-9-]+/i;
+  const match = text.match(linkedInPattern);
+  return match ? `https://${match[0]}` : undefined;
+}
+
+/**
+ * Extract GitHub URL
+ */
+function extractGitHub(text: string): string | undefined {
+  const githubPattern = /github\.com\/[a-zA-Z0-9-]+/i;
+  const match = text.match(githubPattern);
+  return match ? `https://${match[0]}` : undefined;
 }
 
 /**
  * Determine section type from heading text
  */
-function getSectionType(headingText: string): Section['type'] {
+function getSectionType(headingText: string): 'experience' | 'education' | 'skills' | 'projects' | 'certifications' | 'unknown' {
   const lower = headingText.toLowerCase();
   
   for (const [type, keywords] of Object.entries(SECTION_KEYWORDS)) {
     if (keywords.some(keyword => lower.includes(keyword))) {
-      return type as Section['type'];
+      return type as any;
     }
   }
   
-  return 'custom';
+  return 'unknown';
 }
 
 /**
- * Check if a line is a continuation of the previous bullet (doesn't start with a bullet marker)
+ * Parse text into component-based resume structure
  */
-function isContinuationLine(line: string): boolean {
-  if (!line) return false;
-  const trimmed = line.trim();
-  
-  // If it starts with a bullet marker, it's not a continuation
-  if (isBulletLine(trimmed)) return false;
-  
-  // If it's a section heading, it's not a continuation
-  if (isSectionHeading(trimmed)) return false;
-  
-  // If it's a date, it's not a continuation
-  if (isDateLine(trimmed)) return false;
-  
-  // If it's a job header, it's not a continuation
-  if (isJobHeader(trimmed)) return false;
-  
-  // If it starts with lowercase, likely a continuation
-  if (trimmed.length > 0 && /^[a-z]/.test(trimmed)) return true;
-  
-  // If line is short and doesn't end with period, might be continuation
-  if (trimmed.length < 80 && !trimmed.endsWith('.') && !trimmed.endsWith(',')) {
-    // But not if it starts with a capital and looks like a header
-    if (/^[A-Z][a-z]/.test(trimmed) && trimmed.includes(' ')) {
-      return false;
-    }
-    return true;
-  }
-  
-  return false;
-}
-
-/**
- * Parse extracted PDF text into structured blocks organized by sections with subsections
- */
-export function parseTextToBlocks(text: string): Section[] {
+export function parseTextToResume(text: string): ParsedResume {
   const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-  const sections: Section[] = [];
-  let currentSection: Section | null = null;
-  let currentSubSection: SubSection | null = null;
-  let currentBulletText = '';
-  let isAccumulatingBullet = false;
-  let pendingHeaders: Block[] = []; // Accumulate headers before first bullet to group as subsection
   
-  const finalizeBullet = () => {
-    if (currentBulletText) {
-      const trimmed = currentBulletText.trim();
-      if (trimmed.length > 3) {
-        const block: Block = {
-          id: uuidv4(),
-          type: 'bullet',
-          text: trimmed,
-        };
-        
-        // Add to subsection if exists, otherwise to section
-        if (currentSubSection) {
-          currentSubSection.blocks.push(block);
-        } else if (currentSection) {
-          currentSection.blocks.push(block);
-        }
-      }
-    }
-    currentBulletText = '';
-    isAccumulatingBullet = false;
+  const result: ParsedResume = {
+    header: {
+      name: '',
+      email: '',
+      phone: ''
+    },
+    education: [],
+    experience: [],
+    skills: [],
+    projects: [],
+    certifications: []
   };
   
-  const finalizeSubSection = () => {
-    if (currentSubSection && currentSection) {
-      // Only finalize if it has content
-      if (currentSubSection.blocks.length > 0) {
-        if (!currentSection.subsections) {
-          currentSection.subsections = [];
-        }
-        currentSection.subsections.push(currentSubSection);
-      }
-      currentSubSection = null;
-    }
-    pendingHeaders = [];
-  };
+  // Extract header info from first few lines
+  const headerText = lines.slice(0, 5).join(' ');
+  result.header.name = lines[0] || '';
+  result.header.email = extractEmail(headerText) || '';
+  result.header.phone = extractPhone(headerText) || '';
+  result.header.linkedin = extractLinkedIn(headerText);
+  result.header.github = extractGitHub(headerText);
   
-  const startNewSubSection = () => {
-    // Finalize previous subsection
-    finalizeSubSection();
-    
-    // Create new subsection with pending headers
-    if (pendingHeaders.length > 0 && currentSection) {
-      const title = pendingHeaders.map(h => h.text).join(' - ');
-      currentSubSection = {
-        id: uuidv4(),
-        title: title,
-        blocks: [...pendingHeaders], // Include headers in the subsection
-        order: currentSection.subsections?.length || 0,
-      };
-      pendingHeaders = [];
-    }
-  };
+  let currentSection: string = '';
+  let currentExperience: Partial<ExperienceEntry> | null = null;
+  let currentEducation: Partial<EducationEntry> | null = null;
+  let currentProject: Partial<ProjectEntry> | null = null;
+  let pendingLines: string[] = [];
   
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     
     // Check if this is a section heading
     if (isSectionHeading(line)) {
-      // Finalize any pending bullet and subsection
-      finalizeBullet();
-      finalizeSubSection();
-      
-      // Save current section if it exists
-      if (currentSection) {
-        if (currentSection.blocks.length > 0 || (currentSection.subsections && currentSection.subsections.length > 0)) {
-          sections.push(currentSection);
+      // Finalize any pending items
+      if (currentExperience) {
+        if (currentExperience.company && currentExperience.role) {
+          result.experience.push({
+            id: uuidv4(),
+            company: currentExperience.company,
+            role: currentExperience.role,
+            location: currentExperience.location || '',
+            startDate: currentExperience.startDate || '',
+            endDate: currentExperience.endDate || '',
+            bullets: currentExperience.bullets || [],
+            order: result.experience.length
+          });
         }
+        currentExperience = null;
       }
       
-      // Start new section
-      const sectionType = getSectionType(line);
-      currentSection = {
-        id: uuidv4(),
-        type: sectionType,
-        label: line,
-        blocks: [],
-        order: sections.length,
-      };
-      currentSubSection = null;
-      pendingHeaders = [];
-    } else {
-      // If no section yet, create a default "Imported" section
-      if (!currentSection) {
-        currentSection = {
-          id: uuidv4(),
-          type: 'custom',
-          label: 'Imported Resume',
-          blocks: [],
-          order: 0,
-        };
+      if (currentEducation) {
+        if (currentEducation.school) {
+          result.education.push({
+            id: uuidv4(),
+            school: currentEducation.school,
+            degree: currentEducation.degree || '',
+            field: currentEducation.field,
+            location: currentEducation.location || '',
+            graduationDate: currentEducation.graduationDate || '',
+            gpa: currentEducation.gpa,
+            order: result.education.length
+          });
+        }
+        currentEducation = null;
       }
       
-      // Check if this is a new bullet point or a continuation
+      if (currentProject) {
+        if (currentProject.name) {
+          result.projects.push({
+            id: uuidv4(),
+            name: currentProject.name,
+            description: currentProject.description || '',
+            technologies: currentProject.technologies || [],
+            link: currentProject.link,
+            order: result.projects.length
+          });
+        }
+        currentProject = null;
+      }
+      
+      currentSection = getSectionType(line);
+      pendingLines = [];
+      continue;
+    }
+    
+    // Process based on current section
+    if (currentSection === 'experience') {
       if (isBulletLine(line)) {
-        // If we have pending headers, this is the first bullet of a new subsection
-        if (pendingHeaders.length > 0) {
-          startNewSubSection();
+        if (!currentExperience) {
+          currentExperience = { bullets: [] };
         }
-        
-        // Finalize previous bullet if any
-        finalizeBullet();
-        
-        // Start new bullet
-        currentBulletText = cleanBulletText(line);
-        isAccumulatingBullet = true;
-      } else if (isAccumulatingBullet && isContinuationLine(line)) {
-        // This line continues the previous bullet
-        currentBulletText += ' ' + line;
+        currentExperience.bullets = currentExperience.bullets || [];
+        currentExperience.bullets.push(cleanBulletText(line));
       } else {
-        // This is a standalone line (not a bullet, not a continuation)
-        // Finalize any pending bullet first
-        finalizeBullet();
-        
-        // Determine the type of this line
-        const trimmed = line.trim();
-        if (trimmed.length > 3) {
-          let blockType: Block['type'] = 'header';
-          
-          // Check if it's metadata (dates, locations, etc.)
-          if (isDateLine(trimmed) || trimmed.includes(',')) {
-            blockType = 'meta';
+        // Check if this starts a new experience entry
+        const dates = extractDates(line);
+        if (dates) {
+          // Finalize previous experience
+          if (currentExperience && currentExperience.company && currentExperience.role) {
+            result.experience.push({
+              id: uuidv4(),
+              company: currentExperience.company,
+              role: currentExperience.role,
+              location: currentExperience.location || '',
+              startDate: currentExperience.startDate || '',
+              endDate: currentExperience.endDate || '',
+              bullets: currentExperience.bullets || [],
+              order: result.experience.length
+            });
           }
           
-          const block: Block = {
-            id: uuidv4(),
-            type: blockType,
-            text: trimmed,
+          // Start new experience
+          currentExperience = {
+            startDate: dates.startDate,
+            endDate: dates.endDate,
+            bullets: []
           };
           
-          // For Experience/Projects sections, accumulate headers to create subsections
-          if (currentSection.type === 'experience' || currentSection.type === 'projects' || currentSection.type === 'education') {
-            // If we already have a subsection with bullets, this header starts a new subsection
-            if (currentSubSection !== null) {
-              const subsec = currentSubSection as SubSection;
-              if (subsec.blocks.some((b: Block) => b.type === 'bullet')) {
-                startNewSubSection();
-              }
+          // Try to extract location from same line
+          const parts = line.split(/[-–—]/);
+          if (parts.length > 2) {
+            const locationPart = parts[parts.length - 1].replace(dates.endDate, '').trim();
+            if (locationPart && locationPart.length < 50) {
+              currentExperience.location = locationPart;
             }
-            
-            // Add to pending headers
-            pendingHeaders.push(block);
-          } else {
-            // For other sections, just add directly
-            currentSection.blocks.push(block);
+          }
+        } else if (!isDateLine(line) && line.length < 100) {
+          // This might be company/role line
+          if (!currentExperience) {
+            currentExperience = { bullets: [] };
+          }
+          
+          if (!currentExperience.company) {
+            currentExperience.company = line;
+          } else if (!currentExperience.role) {
+            currentExperience.role = line;
+          } else if (!currentExperience.location && !line.includes('•')) {
+            currentExperience.location = line;
           }
         }
       }
-    }
-  }
-  
-  // Finalize any remaining bullet and subsection
-  finalizeBullet();
-  finalizeSubSection();
-  
-  // Add the last section
-  if (currentSection) {
-    if (currentSection.blocks.length > 0 || (currentSection.subsections && currentSection.subsections.length > 0)) {
-      sections.push(currentSection);
-    }
-  }
-  
-  // If no sections were created, return a single default section
-  if (sections.length === 0 && lines.length > 0) {
-    const defaultSection: Section = {
-      id: uuidv4(),
-      type: 'custom',
-      label: 'Imported Resume',
-      blocks: [],
-      order: 0,
-    };
-    
-    // Process all lines with bullet grouping
-    let tempBullet = '';
-    for (const line of lines) {
-      if (isBulletLine(line)) {
-        if (tempBullet) {
-          defaultSection.blocks.push({
-            id: uuidv4(),
-            type: 'bullet',
-            text: tempBullet.trim(),
-          });
+    } else if (currentSection === 'education') {
+      if (!currentEducation) {
+        currentEducation = {};
+      }
+      
+      const dates = extractDates(line);
+      if (dates) {
+        currentEducation.graduationDate = dates.endDate;
+        
+        // Extract location from same line if present
+        const locationMatch = line.match(/([A-Z][a-z]+,\s*[A-Z][a-z]+)/);
+        if (locationMatch) {
+          currentEducation.location = locationMatch[1];
         }
-        tempBullet = cleanBulletText(line);
-      } else if (tempBullet && isContinuationLine(line)) {
-        tempBullet += ' ' + line;
-      } else {
-        if (tempBullet) {
-          defaultSection.blocks.push({
-            id: uuidv4(),
-            type: 'bullet',
-            text: tempBullet.trim(),
-          });
-          tempBullet = '';
-        }
-        defaultSection.blocks.push({
+      } else if (!currentEducation.school && !isBulletLine(line)) {
+        currentEducation.school = line;
+      } else if (!currentEducation.degree && !isBulletLine(line) && line.length < 150) {
+        currentEducation.degree = line;
+      }
+    } else if (currentSection === 'skills') {
+      // Skills are often "Category: skill1, skill2, skill3"
+      if (line.includes(':')) {
+        const parts = line.split(':');
+        const category = parts[0].trim();
+        const skillsText = parts.slice(1).join(':').trim();
+        const skills = skillsText.split(',').map(s => s.trim()).filter(s => s.length > 0);
+        
+        result.skills.push({
           id: uuidv4(),
-          type: 'header',
-          text: line,
+          category,
+          skills,
+          order: result.skills.length
         });
       }
+    } else if (currentSection === 'projects') {
+      if (isBulletLine(line)) {
+        if (!currentProject) {
+          currentProject = {};
+        }
+        const bulletText = cleanBulletText(line);
+        currentProject.description = (currentProject.description || '') + ' ' + bulletText;
+      } else if (!isBulletLine(line) && line.length < 100) {
+        // Finalize previous project
+        if (currentProject && currentProject.name) {
+          result.projects.push({
+            id: uuidv4(),
+            name: currentProject.name,
+            description: (currentProject.description || '').trim(),
+            technologies: currentProject.technologies || [],
+            link: currentProject.link,
+            order: result.projects.length
+          });
+        }
+        
+        // Start new project
+        currentProject = { name: line };
+      }
+    } else if (currentSection === 'certifications') {
+      if (!isSectionHeading(line)) {
+        result.certifications.push(line);
+      }
     }
-    
-    // Add final bullet if any
-    if (tempBullet) {
-      defaultSection.blocks.push({
-        id: uuidv4(),
-        type: 'bullet',
-        text: tempBullet.trim(),
-      });
-    }
-    
-    sections.push(defaultSection);
   }
   
-  return sections;
+  // Finalize any remaining items
+  if (currentExperience && currentExperience.company && currentExperience.role) {
+    result.experience.push({
+      id: uuidv4(),
+      company: currentExperience.company,
+      role: currentExperience.role,
+      location: currentExperience.location || '',
+      startDate: currentExperience.startDate || '',
+      endDate: currentExperience.endDate || '',
+      bullets: currentExperience.bullets || [],
+      order: result.experience.length
+    });
+  }
+  
+  if (currentEducation && currentEducation.school) {
+    result.education.push({
+      id: uuidv4(),
+      school: currentEducation.school,
+      degree: currentEducation.degree || '',
+      field: currentEducation.field,
+      location: currentEducation.location || '',
+      graduationDate: currentEducation.graduationDate || '',
+      gpa: currentEducation.gpa,
+      order: result.education.length
+    });
+  }
+  
+  if (currentProject && currentProject.name) {
+    result.projects.push({
+      id: uuidv4(),
+      name: currentProject.name,
+      description: (currentProject.description || '').trim(),
+      technologies: currentProject.technologies || [],
+      link: currentProject.link,
+      order: result.projects.length
+    });
+  }
+  
+  return result;
 }
-

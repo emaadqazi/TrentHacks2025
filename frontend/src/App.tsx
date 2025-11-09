@@ -4,7 +4,7 @@ import { ProtectedRoute } from "./components/auth/ProtectedRoute"
 import LandingAuthPage from "./pages/LandingAuth"
 import DashboardPage from "./pages/Dashboard"
 import TemplatesPage from "./pages/Templates"
-import BlockEditor from "./pages/BlockEditor"
+import ResumeEditor from "./pages/ResumeEditor"
 import ResumeTest from "./pages/ResumeTest"
 
 function App() {
@@ -34,7 +34,7 @@ function App() {
             path="/editor"
             element={
               <ProtectedRoute>
-                <BlockEditor />
+                <ResumeEditor />
               </ProtectedRoute>
             }
           />
@@ -42,7 +42,7 @@ function App() {
             path="/editor/:id"
             element={
               <ProtectedRoute>
-                <BlockEditor />
+                <ResumeEditor />
               </ProtectedRoute>
             }
           />

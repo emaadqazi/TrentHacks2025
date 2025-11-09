@@ -59,6 +59,32 @@ export async function createResume(
 }
 
 /**
+ * Create a resume from uploaded PDF data
+ */
+export async function createResumeFromUpload(
+  userId: string,
+  parsedResume: Resume,
+  fileName: string
+): Promise<string> {
+  const resumeId = `${userId}_${Date.now()}`;
+  const resumeRef = doc(db, 'resumes', resumeId);
+
+  // Clean title from filename
+  const title = fileName.replace(/\.pdf$/i, '').replace(/_/g, ' ');
+
+  await setDoc(resumeRef, {
+    id: resumeId,
+    userId,
+    title,
+    resumeData: parsedResume,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+
+  return resumeId;
+}
+
+/**
  * Get a resume by ID
  */
 export async function getResume(resumeId: string): Promise<UserResume | null> {
