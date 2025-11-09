@@ -74,6 +74,18 @@ export async function uploadResumePDF(userId: string, file: File): Promise<strin
     console.log('Starting resume upload for user:', userId);
     console.log('File details:', { name: file.name, size: file.size, type: file.type });
     
+    if (!storage) {
+      throw new Error('Firebase Storage is not initialized');
+    }
+    
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
+    
+    if (!file) {
+      throw new Error('File is required');
+    }
+    
     // Create a reference to the file location in Storage
     // Use a consistent filename to replace old resumes
     const timestamp = Date.now();
@@ -81,12 +93,15 @@ export async function uploadResumePDF(userId: string, file: File): Promise<strin
     const resumeRef = ref(storage, `resumes/${userId}/${fileName}`);
     
     console.log('Uploading to path:', `resumes/${userId}/${fileName}`);
+    console.log('Storage reference created');
     
     // Upload the file
+    console.log('Starting uploadBytes...');
     const uploadResult = await uploadBytes(resumeRef, file);
     console.log('Upload successful:', uploadResult);
     
     // Get the download URL
+    console.log('Getting download URL...');
     const downloadURL = await getDownloadURL(resumeRef);
     console.log('Download URL obtained:', downloadURL);
     
@@ -95,6 +110,17 @@ export async function uploadResumePDF(userId: string, file: File): Promise<strin
     console.error('Error uploading resume PDF:', error);
     console.error('Error code:', error.code);
     console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    
+    // Provide more specific error messages
+    if (error.code === 'storage/unauthorized') {
+      throw new Error('You do not have permission to upload files. Please check Firebase Storage rules.');
+    } else if (error.code === 'storage/canceled') {
+      throw new Error('Upload was canceled.');
+    } else if (error.code === 'storage/unknown') {
+      throw new Error('An unknown error occurred. Please check your Firebase configuration.');
+    }
+    
     throw new Error(`Failed to upload resume: ${error.message || 'Unknown error'}`);
   }
 }

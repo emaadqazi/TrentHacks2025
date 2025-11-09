@@ -1,8 +1,7 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,6 +31,48 @@ import { getUserProfile } from "@/lib/userProfile"
 import toast from "react-hot-toast"
 import type { JobApplication, ApplicationStatus, Position, JobApplicationInput } from "@/types/jobApplication"
 import { getUserJobApplications, createJobApplication, updateJobApplication, deleteJobApplication } from "@/lib/firestore"
+
+// Avatar options matching ProfilePage
+const AVATAR_OPTIONS = [
+  { id: 'brown1', name: 'Light Brown', color: '#8B6F47' },
+  { id: 'brown2', name: 'Medium Brown', color: '#6B4E3D' },
+  { id: 'brown3', name: 'Dark Brown', color: '#5C4033' },
+  { id: 'brown4', name: 'Coffee', color: '#6F4E37' },
+  { id: 'brown5', name: 'Caramel', color: '#A67C52' },
+  { id: 'brown6', name: 'Chocolate', color: '#4A3428' },
+  { id: 'brown7', name: 'Espresso', color: '#3E2723' },
+  { id: 'brown8', name: 'Mahogany', color: '#2E1B14' },
+];
+
+// Component to render furry monster avatar
+const MonsterAvatar = ({ color, size = 64 }: { color: string; size?: number }) => {
+  return (
+    <div className="rounded-full overflow-hidden flex-shrink-0" style={{ width: size, height: size, minWidth: size, minHeight: size }}>
+      <svg width={size} height={size} viewBox="0 0 64 64" style={{ display: 'block', width: '100%', height: '100%' }}>
+        {/* Background circle - fills entire viewBox */}
+        <circle cx="32" cy="32" r="32" fill={color} />
+        {/* Texture pattern */}
+        <defs>
+          <pattern id={`texture-${color.replace('#', '')}`} x="0" y="0" width="8" height="8" patternUnits="userSpaceOnUse">
+            <circle cx="4" cy="4" r="0.5" fill="rgba(255,255,255,0.1)" />
+          </pattern>
+        </defs>
+        <circle cx="32" cy="32" r="32" fill={`url(#texture-${color.replace('#', '')})`} />
+        
+        {/* Left Eye */}
+        <circle cx="24" cy="26" r="5" fill="#000" />
+        <circle cx="25" cy="25" r="1.5" fill="#FFF" />
+        
+        {/* Right Eye */}
+        <circle cx="40" cy="26" r="5" fill="#000" />
+        <circle cx="41" cy="25" r="1.5" fill="#FFF" />
+        
+        {/* Smile */}
+        <path d="M 24 38 Q 32 42 40 38" stroke="#000" strokeWidth="2" fill="none" strokeLinecap="round" />
+      </svg>
+    </div>
+  );
+};
 
 const POSITIONS: Position[] = [
   "SWE",
@@ -80,16 +121,48 @@ export default function JobTrackerPage() {
   const [applications, setApplications] = useState<JobApplication[]>([])
   const [filterStatus, setFilterStatus] = useState<ApplicationStatus | "All">("All")
   const [loading, setLoading] = useState(true)
-  const [userProfilePhoto, setUserProfilePhoto] = useState<string | null>(null)
+  const [userProfile, setUserProfile] = useState<any>(null)
+  const [displayedTitle, setDisplayedTitle] = useState('')
+  const typewriterTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const userDisplayName = currentUser?.displayName || currentUser?.email?.split('@')[0] || 'User'
   const userEmail = currentUser?.email || ''
-  const userInitials = userDisplayName
-    .split(' ')
-    .map(n => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2) || 'U'
+
+  const fullTitle = "Job Application Tracker"
+
+  // Typewriter effect for title
+  useEffect(() => {
+    setDisplayedTitle('') // Reset on mount
+    
+    // Clear any existing timeout
+    if (typewriterTimeoutRef.current) {
+      clearTimeout(typewriterTimeoutRef.current)
+    }
+    
+    let charIndex = 0
+    const typeWriterEffect = () => {
+      if (charIndex < fullTitle.length) {
+        setDisplayedTitle((prev) => {
+          // Prevent duplicates by checking if we're already past this character
+          if (prev.length < charIndex + 1) {
+            return prev + fullTitle.charAt(charIndex)
+          }
+          return prev
+        })
+        charIndex++
+        typewriterTimeoutRef.current = setTimeout(typeWriterEffect, 70)
+      }
+    }
+    // Small delay before starting
+    typewriterTimeoutRef.current = setTimeout(typeWriterEffect, 100)
+    
+    // Cleanup function
+    return () => {
+      if (typewriterTimeoutRef.current) {
+        clearTimeout(typewriterTimeoutRef.current)
+      }
+    }
+  }, [])
 
   // Load applications from Firestore
   useEffect(() => {
@@ -100,11 +173,9 @@ export default function JobTrackerPage() {
           const userApplications = await getUserJobApplications(currentUser.uid)
           setApplications(userApplications)
           
-          // Load profile photo
+          // Load user profile for avatar
           const profile = await getUserProfile(currentUser.uid)
-          if (profile?.profilePhotoUrl) {
-            setUserProfilePhoto(profile.profilePhotoUrl)
-          }
+          setUserProfile(profile)
         } catch (error) {
           console.error('Error loading applications:', error)
           toast.error('Failed to load applications')
@@ -201,11 +272,12 @@ export default function JobTrackerPage() {
   }, {} as Record<ApplicationStatus, number>)
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#18100a] via-[#221410] to-[#0f0b08]">
-      {/* Wood grain texture overlay */}
-      <div className="absolute inset-0 opacity-[0.15] pointer-events-none" style={{
+    <div className="min-h-screen bg-gradient-to-br from-[#18100a] via-[#221410] to-[#0f0b08] relative">
+      {/* Wood grain texture overlay - fixed to cover full height */}
+      <div className="fixed inset-0 opacity-[0.15] pointer-events-none z-0" style={{
         backgroundImage: `url("data:image/svg+xml,%3Csvg width='200' height='200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='wood'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.08' numOctaves='4' seed='1' /%3E%3CfeColorMatrix values='0 0 0 0 0.35, 0 0 0 0 0.24, 0 0 0 0 0.15, 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23wood)' /%3E%3C/svg%3E")`,
-        backgroundSize: '400px 400px'
+        backgroundSize: '400px 400px',
+        minHeight: '100vh',
       }} />
       
       {/* Top Navigation */}
@@ -242,11 +314,8 @@ export default function JobTrackerPage() {
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-9 w-9 rounded-full hover:bg-[#F5F1E8]/10">
-                <Avatar className="h-9 w-9">
-                  <AvatarImage src={userProfilePhoto || currentUser?.photoURL || undefined} alt={userDisplayName} />
-                  <AvatarFallback className="bg-gradient-to-br from-[#3a5f24] to-[#253f12] text-white">{userInitials}</AvatarFallback>
-                </Avatar>
+              <Button variant="ghost" className="relative h-9 w-9 rounded-full hover:bg-[#F5F1E8]/10 p-0 overflow-hidden flex items-center justify-center">
+                <MonsterAvatar color={AVATAR_OPTIONS.find(a => a.id === userProfile?.selectedAvatar)?.color || AVATAR_OPTIONS[0].color} size={36} />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56 bg-[#221410] border-[#8B6F47]/30" align="end" forceMount>
@@ -278,7 +347,10 @@ export default function JobTrackerPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-[#F5F1E8] mb-2">Job Application Tracker</h1>
+            <h1 className="text-3xl font-bold tracking-tight text-[#F5F1E8] mb-2">
+              {displayedTitle}
+              {displayedTitle.length < fullTitle.length && <span className="animate-pulse">|</span>}
+            </h1>
             <p className="text-[#C9B896]">Track and manage your job applications in one place</p>
           </div>
           <Button

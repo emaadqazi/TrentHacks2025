@@ -7,6 +7,13 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -64,8 +71,9 @@ export default function QuestionsPage() {
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const questionsContainerRef = useRef<HTMLDivElement>(null);
+  const typewriterTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const fullPrompt = "Let's get you prepared for interviews";
+  const fullPrompt = " Let's get you prepared for interviews";
   const userDisplayName = currentUser?.displayName || currentUser?.email?.split('@')[0] || 'User';
   const userEmail = currentUser?.email || '';
   const userInitials = userDisplayName
@@ -105,17 +113,37 @@ export default function QuestionsPage() {
 
   // Typewriter effect for initial prompt
   useEffect(() => {
+    setDisplayedPrompt(''); // Reset on mount
+    
+    // Clear any existing timeout
+    if (typewriterTimeoutRef.current) {
+      clearTimeout(typewriterTimeoutRef.current);
+    }
+    
     let charIndex = 0;
     const typeWriterEffect = () => {
       if (charIndex < fullPrompt.length) {
-        setDisplayedPrompt((prev) => prev + fullPrompt.charAt(charIndex));
+        setDisplayedPrompt((prev) => {
+          // Prevent duplicates by checking if we're already past this character
+          if (prev.length < charIndex + 1) {
+            return prev + fullPrompt.charAt(charIndex);
+          }
+          return prev;
+        });
         charIndex++;
-        setTimeout(typeWriterEffect, 70);
+        typewriterTimeoutRef.current = setTimeout(typeWriterEffect, 70);
       } else {
         setTimeout(() => setShowQuestions(true), 500);
       }
     };
     typeWriterEffect();
+    
+    // Cleanup function
+    return () => {
+      if (typewriterTimeoutRef.current) {
+        clearTimeout(typewriterTimeoutRef.current);
+      }
+    };
   }, []);
 
   // Scroll to newest question
@@ -128,12 +156,40 @@ export default function QuestionsPage() {
     }
   }, [currentQuestionIndex, showQuestions]);
 
+  const jobTitles = [
+    'Software Engineer',
+    'Software Developer',
+    'Senior Software Engineer',
+    'Full Stack Developer',
+    'Frontend Developer',
+    'Backend Developer',
+    'Product Manager',
+    'Product Owner',
+    'Cloud Architect',
+    'DevOps Engineer',
+    'Data Engineer',
+    'Data Scientist',
+    'Machine Learning Engineer',
+    'QA Engineer',
+    'QA Automation Engineer',
+    'Mobile Developer',
+    'iOS Developer',
+    'Android Developer',
+    'UI/UX Designer',
+    'Technical Lead',
+    'Engineering Manager',
+    'Solutions Architect',
+    'Security Engineer',
+    'Site Reliability Engineer',
+    'Other',
+  ];
+
   const questions = [
     {
       id: 'jobTitle',
       label: "What job are you trying to get?",
-      type: 'text',
-      placeholder: 'e.g., Software Engineer, Product Manager...',
+      type: 'select',
+      placeholder: 'Select a job title...',
     },
     {
       id: 'location',
@@ -184,7 +240,8 @@ export default function QuestionsPage() {
       return;
     }
     
-    if (questionData[currentQ.id as keyof QuestionData]) {
+    const value = questionData[currentQ.id as keyof QuestionData];
+    if (value && value.trim() !== '') {
       moveToNextQuestion();
     }
   };
@@ -286,13 +343,14 @@ export default function QuestionsPage() {
   const isLastQuestion = currentQuestionIndex === questions.length - 1;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#1a0f08] via-[#221410] to-[#1a0f08]">
-      {/* Wood grain texture overlay */}
+    <div className="min-h-screen bg-gradient-to-br from-[#1a0f08] via-[#221410] to-[#1a0f08] relative">
+      {/* Wood grain texture overlay - fixed to cover full height */}
       <div
-        className="absolute inset-0 opacity-[0.15] pointer-events-none"
+        className="fixed inset-0 opacity-[0.15] pointer-events-none z-0"
         style={{
           backgroundImage: `url("data:image/svg+xml,%3Csvg width='200' height='200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='wood'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.08' numOctaves='4' seed='1' /%3E%3CfeColorMatrix values='0 0 0 0 0.35, 0 0 0 0 0.24, 0 0 0 0 0.15, 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23wood)' /%3E%3C/svg%3E")`,
           backgroundSize: '400px 400px',
+          minHeight: '100vh',
         }}
       />
 
@@ -441,6 +499,36 @@ export default function QuestionsPage() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
+                      {question.type === 'select' && (
+                        <Select
+                          value={questionData[question.id as keyof QuestionData] as string}
+                          onValueChange={(value) => {
+                            handleInputChange(question.id, value);
+                            // Auto-advance to next question when a selection is made
+                            if (isCurrentQuestion && value) {
+                              setTimeout(() => {
+                                moveToNextQuestion();
+                              }, 300);
+                            }
+                          }}
+                          disabled={!isCurrentQuestion}
+                        >
+                          <SelectTrigger className="bg-[#1a0f08] border-[#8B6F47]/50 text-[#F5F1E8] placeholder:text-[#C9B896] focus:ring-[#527853] disabled:opacity-50">
+                            <SelectValue placeholder={question.placeholder} />
+                          </SelectTrigger>
+                          <SelectContent className="bg-[#221410] border-[#8B6F47]/50 text-[#F5F1E8]">
+                            {jobTitles.map((title) => (
+                              <SelectItem
+                                key={title}
+                                value={title}
+                                className="text-[#F5F1E8] focus:bg-[#3a5f24]/20 focus:text-[#F5F1E8] cursor-pointer"
+                              >
+                                {title}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
                       {question.type === 'text' && (
                         <Input
                           type="text"
@@ -598,12 +686,13 @@ export default function QuestionsPage() {
             onClick={(e) => e.stopPropagation()}
             className="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto bg-[#221410] border border-[#8B6F47]/30 rounded-xl shadow-2xl"
           >
-            {/* Close Button */}
+            {/* Close Button - More Visible */}
             <button
               onClick={closeModal}
-              className="absolute top-4 right-4 p-2 rounded-full hover:bg-[#1a0f08] text-[#C9B896] hover:text-[#F5F1E8] transition-colors"
+              className="absolute top-4 right-4 z-10 p-3 rounded-full bg-[#1a0f08]/90 hover:bg-[#1a0f08] border border-[#8B6F47]/50 hover:border-[#527853] text-[#F5F1E8] hover:text-white transition-all shadow-lg hover:shadow-xl"
+              aria-label="Close modal"
             >
-              <X className="h-5 w-5" />
+              <X className="h-6 w-6" />
             </button>
 
             <div className="p-6">
@@ -630,28 +719,51 @@ export default function QuestionsPage() {
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="mb-6 p-6 bg-[#1a0f08]/60 border border-[#8B6F47]/30 rounded-lg"
+                  className="mb-6 space-y-6"
                 >
-                  <div className="flex items-center gap-3 mb-4">
-                    <Star className="h-6 w-6 text-yellow-400 fill-yellow-400" />
-                    <h3 className="text-xl font-bold text-[#F5F1E8]">AI Evaluation</h3>
-                  </div>
-                  <div className="mb-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-lg font-semibold text-[#C9B896]">Rating:</span>
-                      <span className="text-3xl font-bold text-[#527853]">{evaluation.rating}/10</span>
-                    </div>
-                    <div className="w-full bg-[#1a0f08] rounded-full h-3 mb-2">
-                      <div
-                        className="bg-gradient-to-r from-[#527853] to-[#3a5f24] h-3 rounded-full transition-all duration-500"
-                        style={{ width: `${(evaluation.rating / 10) * 100}%` }}
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <h4 className="text-lg font-semibold text-[#F5F1E8] mb-2">STAR Method Feedback:</h4>
-                    <p className="text-[#C9B896] whitespace-pre-wrap leading-relaxed">{evaluation.feedback}</p>
-                  </div>
+                  {/* Rating Card */}
+                  <Card className="bg-[#1a0f08]/80 border-[#8B6F47]/30 shadow-lg">
+                    <CardContent className="p-6">
+                      <div className="flex items-center gap-3 mb-6">
+                        <div className="p-2 rounded-lg bg-yellow-400/20">
+                          <Star className="h-7 w-7 text-yellow-400 fill-yellow-400" />
+                        </div>
+                        <h3 className="text-2xl font-bold text-[#F5F1E8]">AI Evaluation</h3>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        <div>
+                          <div className="flex items-baseline gap-3 mb-3">
+                            <span className="text-lg font-semibold text-[#C9B896]">Rating:</span>
+                            <span className="text-4xl font-bold text-[#527853]">{evaluation.rating}/10</span>
+                          </div>
+                          <div className="w-full bg-[#1a0f08] rounded-full h-4 shadow-inner">
+                            <div
+                              className="bg-gradient-to-r from-[#527853] to-[#3a5f24] h-4 rounded-full transition-all duration-500 shadow-lg"
+                              style={{ width: `${(evaluation.rating / 10) * 100}%` }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Feedback Card */}
+                  <Card className="bg-[#1a0f08]/80 border-[#8B6F47]/30 shadow-lg">
+                    <CardHeader>
+                      <CardTitle className="text-xl font-bold text-[#F5F1E8] flex items-center gap-2">
+                        <div className="h-1 w-1 rounded-full bg-[#527853]"></div>
+                        STAR Method Feedback
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-6 pt-0">
+                      <div className="prose prose-invert max-w-none">
+                        <p className="text-[#C9B896] leading-relaxed whitespace-pre-wrap text-base">
+                          {evaluation.feedback}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </motion.div>
               )}
 
