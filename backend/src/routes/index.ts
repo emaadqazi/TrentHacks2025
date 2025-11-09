@@ -4,36 +4,22 @@ import { uploadResume, critiqueResume, getResumeBlocks } from '../controllers/re
 
 const router = Router();
 
-// Configure multer for in-memory file storage
+// Configure multer for file uploads
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB max file size
-  },
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype === 'application/pdf') {
-      cb(null, true);
-    } else {
-      cb(new Error('Only PDF files are allowed'));
-    }
-  },
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
 });
 
 // Health check
 router.get('/health', (req: Request, res: Response) => {
-  res.json({ status: 'ok', message: 'ResuBlocks API is running' });
+  res.json({ status: 'ok' });
 });
 
-// Resume routes
+// Upload endpoint - simple and clean
 router.post('/resume/upload', upload.single('file'), uploadResume);
+
+// Other routes
 router.post('/resume/critique', critiqueResume);
 router.post('/resume/blocks/alternatives', getResumeBlocks);
 
-// Job routes
-router.post('/jobs/scrape', async (req: Request, res: Response) => {
-  // TODO: Implement job scraping
-  res.json({ message: 'Job scraping endpoint' });
-});
-
 export default router;
-

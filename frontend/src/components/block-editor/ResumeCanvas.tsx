@@ -6,6 +6,7 @@ import SectionBlock from "./SectionBlock"
 import { DragDropContext, Droppable } from "@hello-pangea/dnd"
 import type { DropResult } from "@hello-pangea/dnd"
 import toast from "react-hot-toast"
+import { resumeApi } from "@/services/api"
 
 interface ResumeCanvasProps {
   resume: Resume | null
@@ -193,19 +194,8 @@ export default function ResumeCanvas({ resume, setResume, selectedBlockId, onBlo
     setIsUploading(true)
 
     try {
-      const formData = new FormData()
-      formData.append('file', file)
-
-      const response = await fetch('/api/resume/upload', {
-        method: 'POST',
-        body: formData,
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to parse PDF')
-      }
+      const response = await resumeApi.uploadResume(file)
+      const data = response.data
 
       // Create resume from parsed sections
       const uploadedResume: Resume = {
@@ -217,10 +207,11 @@ export default function ResumeCanvas({ resume, setResume, selectedBlockId, onBlo
       setLocalResume(uploadedResume)
       setResume(uploadedResume)
 
-      toast.success(`Imported ${data.metadata.totalBlocks} blocks from ${file.name}`)
-    } catch (error) {
+      toast.success(`Imported ${data.metadata?.totalBlocks || 0} blocks from ${file.name}`)
+    } catch (error: any) {
       console.error('Upload error:', error)
-      toast.error(error instanceof Error ? error.message : 'Failed to upload resume')
+      const errorMessage = error?.response?.data?.error || error?.message || 'Failed to upload resume'
+      toast.error(errorMessage)
     } finally {
       setIsUploading(false)
       // Reset file input

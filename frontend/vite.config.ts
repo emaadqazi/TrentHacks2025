@@ -14,8 +14,21 @@ export default defineConfig({
     port: 3000,
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',
+        target: 'http://localhost:5001', // Changed to 5001 (5000 is used by AirPlay)
         changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path,
+        configure: (proxy, _options) => {
+          proxy.on('error', (err, _req, _res) => {
+            console.error('❌ Proxy error:', err.message);
+          });
+          proxy.on('proxyReq', (proxyReq, req, _res) => {
+            console.log('🔄 Proxying:', req.method, req.url, '→ http://localhost:5000' + req.url);
+          });
+          proxy.on('proxyRes', (proxyRes, req, _res) => {
+            console.log('📥 Proxy response:', proxyRes.statusCode, 'for', req.url);
+          });
+        },
       },
     },
   },

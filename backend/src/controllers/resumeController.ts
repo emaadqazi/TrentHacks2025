@@ -1,48 +1,39 @@
 import { Request, Response } from 'express';
 import { parseTextToBlocks } from '../services/pdfParser';
 
-// Parse uploaded PDF resume into blocks
 export const uploadResume = async (req: Request, res: Response) => {
   try {
-    // Check if file exists
+    console.log('📤 Upload request received');
+    
+    // Check for file
     if (!req.file) {
-      return res.status(400).json({ 
-        error: 'No file uploaded. Please upload a PDF file.' 
-      });
+      return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    // Validate file type
-    if (req.file.mimetype !== 'application/pdf') {
-      return res.status(400).json({ 
-        error: 'Invalid file type. Only PDF files are supported.' 
-      });
-    }
+    console.log('✅ File:', req.file.originalname, req.file.size, 'bytes');
 
-    // Import pdf-parse v1.1.1 - it exports a function directly
-    const pdfParse = require('pdf-parse');
-    
     // Parse PDF
+    const pdfParse = require('pdf-parse');
     const pdfData = await pdfParse(req.file.buffer);
-    
+
     if (!pdfData.text || pdfData.text.trim().length === 0) {
-      return res.status(400).json({ 
-        error: 'Could not extract text from PDF. The file might be empty or contain only images.' 
-      });
+      return res.status(400).json({ error: 'Could not extract text from PDF' });
     }
 
-    // Parse text into structured blocks
+    console.log('✅ Extracted text, length:', pdfData.text.length);
+
+    // Parse into sections
     const sections = parseTextToBlocks(pdfData.text);
 
-    if (sections.length === 0 || sections.every(s => s.blocks.length === 0)) {
-      return res.status(400).json({ 
-        error: 'No content could be extracted from the PDF. Please try a different file.' 
-      });
-    }
+    const totalBlocks = sections.reduce((sum, section) => {
+      const sectionBlocks = section.blocks.length;
+      const subsectionBlocks = section.subsections?.reduce((subSum, sub) => subSum + sub.blocks.length, 0) || 0;
+      return sum + sectionBlocks + subsectionBlocks;
+    }, 0);
 
-    // Count total blocks
-    const totalBlocks = sections.reduce((sum, section) => sum + section.blocks.length, 0);
+    console.log('✅ Parsed into', sections.length, 'sections,', totalBlocks, 'blocks');
 
-    res.json({ 
+    res.json({
       success: true,
       sections,
       metadata: {
@@ -52,22 +43,18 @@ export const uploadResume = async (req: Request, res: Response) => {
       }
     });
   } catch (error) {
-    console.error('Error parsing PDF:', error);
-    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
-    res.status(500).json({ 
-      error: 'Failed to parse PDF. Please try another file.',
+    console.error('❌ Error:', error);
+    res.status(500).json({
+      error: 'Failed to parse PDF',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 };
 
 export const critiqueResume = async (req: Request, res: Response) => {
-  // TODO: Implement resume critique against job description
   res.json({ message: 'Resume critique endpoint' });
 };
 
 export const getResumeBlocks = async (req: Request, res: Response) => {
-  // TODO: Implement getting resume blocks/alternatives
   res.json({ message: 'Get resume blocks endpoint' });
 };
-

@@ -8,28 +8,58 @@ const api = axios.create({
 });
 
 export const resumeApi = {
-  uploadResume: (file: File) => {
+  uploadResume: async (file: File) => {
     const formData = new FormData();
-    formData.append('resume', file);
-    return api.post('/resume/upload', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    formData.append('file', file);
+
+    console.log('📤 Uploading:', file.name, file.size, 'bytes');
+    console.log('📤 URL:', '/api/resume/upload');
+
+    try {
+      const response = await fetch('/api/resume/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      console.log('📥 Response status:', response.status, response.statusText);
+      console.log('📥 Response headers:', Object.fromEntries(response.headers.entries()));
+
+      if (!response.ok) {
+        let errorText = '';
+        const contentType = response.headers.get('content-type');
+        
+        try {
+          if (contentType && contentType.includes('application/json')) {
+            const errorData = await response.json();
+            errorText = errorData.error || errorData.message || JSON.stringify(errorData);
+          } else {
+            errorText = await response.text();
+          }
+        } catch (e) {
+          errorText = `Failed to parse error response: ${e}`;
+        }
+        console.error('❌ Upload failed:', response.status, errorText);
+        throw new Error(errorText || `Upload failed with status ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('✅ Upload successful:', data);
+      return data;
+    } catch (error: any) {
+      console.error('❌ Fetch error:', error);
+      if (error.message.includes('Failed to fetch')) {
+        throw new Error('Cannot connect to server. Make sure backend is running on port 5001');
+      }
+      throw error;
+    }
   },
 
   critiqueResume: (resumeId: string, jobDescription: string) => {
-    return api.post('/resume/critique', {
-      resumeId,
-      jobDescription,
-    });
+    return api.post('/resume/critique', { resumeId, jobDescription });
   },
 
   getBlockAlternatives: (blockId: string, jobDescription: string) => {
-    return api.post('/resume/blocks/alternatives', {
-      blockId,
-      jobDescription,
-    });
+    return api.post('/resume/blocks/alternatives', { blockId, jobDescription });
   },
 
   scrapeJobPosting: (url: string) => {
@@ -38,4 +68,3 @@ export const resumeApi = {
 };
 
 export default api;
-

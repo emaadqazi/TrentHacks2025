@@ -1,4 +1,5 @@
-import { Link } from "react-router-dom"
+import { useState, useRef } from "react"
+import { Link, useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -21,7 +22,11 @@ import {
   Pencil,
   Trash2,
   Upload,
+  Loader2,
 } from "lucide-react"
+import { resumeApi } from "@/services/api"
+import toast from "react-hot-toast"
+import type { Resume } from "@/types/resume"
 
 const recentResumes = [
   { id: 1, title: "Software Engineer Resume", date: "2 days ago", template: "Modern Minimal" },
@@ -30,6 +35,55 @@ const recentResumes = [
 ]
 
 export default function DashboardPage() {
+  const navigate = useNavigate()
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [isUploading, setIsUploading] = useState(false)
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    if (file.type !== 'application/pdf') {
+      toast.error('Please upload a PDF file')
+      return
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('File must be less than 10MB')
+      return
+    }
+
+    setIsUploading(true)
+
+    try {
+      console.log('Starting upload...')
+      const data = await resumeApi.uploadResume(file)
+      console.log('Upload successful:', data)
+
+      const uploadedResume: Resume = {
+        id: `resume-${Date.now()}`,
+        title: file.name.replace('.pdf', ''),
+        sections: data.sections,
+      }
+
+      localStorage.setItem('uploadedResume', JSON.stringify(uploadedResume))
+      toast.success(`Imported ${data.metadata?.totalBlocks || 0} blocks`)
+      navigate('/editor')
+    } catch (error: any) {
+      console.error('Upload error:', error)
+      toast.error(error.message || 'Upload failed')
+    } finally {
+      setIsUploading(false)
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Top Navigation */}
@@ -86,6 +140,13 @@ export default function DashboardPage() {
         </div>
       </nav>
       <div className="container mx-auto px-4 py-8">
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="application/pdf"
+          onChange={handleFileChange}
+          className="hidden"
+        />
         <div className="grid gap-8 lg:grid-cols-[280px_1fr]">
           {/* Sidebar */}
           <aside className="space-y-6">
@@ -100,9 +161,24 @@ export default function DashboardPage() {
                     New Resume
                   </Button>
                 </Link>
-                <Button variant="outline" className="w-full justify-start gap-2 bg-transparent" size="default">
-                  <Upload className="h-4 w-4" />
-                  Upload Resume
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start gap-2" 
+                  size="default"
+                  onClick={handleUploadClick}
+                  disabled={isUploading}
+                >
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4" />
+                      Upload Resume
+                    </>
+                  )}
                 </Button>
               </CardContent>
             </Card>
@@ -220,9 +296,22 @@ export default function DashboardPage() {
                         Create New Resume
                       </Button>
                     </Link>
-                    <Button variant="outline">
-                      <Upload className="mr-2 h-4 w-4" />
-                      Upload Resume
+                    <Button 
+                      variant="outline"
+                      onClick={handleUploadClick}
+                      disabled={isUploading}
+                    >
+                      {isUploading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="mr-2 h-4 w-4" />
+                          Upload Resume
+                        </>
+                      )}
                     </Button>
                   </div>
                 </CardContent>
@@ -234,4 +323,3 @@ export default function DashboardPage() {
     </div>
   )
 }
-
