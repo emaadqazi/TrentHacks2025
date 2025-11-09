@@ -1,4 +1,5 @@
 import { Link, useNavigate } from "react-router-dom"
+import { useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -22,8 +23,11 @@ import {
   Trash2,
   Upload,
   LogOut,
+  Loader2,
 } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
+import { resumeApi } from "@/services/api"
+import toast from "react-hot-toast"
 
 const recentResumes = [
   { id: 1, title: "Software Engineer Resume", date: "2 days ago", template: "Modern Minimal" },
@@ -34,6 +38,8 @@ const recentResumes = [
 export default function DashboardPage() {
   const { currentUser, logout } = useAuth()
   const navigate = useNavigate()
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [isUploading, setIsUploading] = useState(false)
 
   const userDisplayName = currentUser?.displayName || currentUser?.email?.split('@')[0] || 'User'
   const userEmail = currentUser?.email || ''
@@ -50,6 +56,46 @@ export default function DashboardPage() {
       navigate('/login')
     } catch (error) {
       // Error handled by AuthContext
+    }
+  }
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    // Validate file type
+    if (file.type !== 'application/pdf') {
+      toast.error('Please upload a PDF file')
+      return
+    }
+
+    // Validate file size (10MB max)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('File size must be less than 10MB')
+      return
+    }
+
+    setIsUploading(true)
+
+    try {
+      const data = await resumeApi.uploadResume(file)
+      console.log('Resume uploaded successfully:', data)
+      toast.success('Resume uploaded successfully!')
+      // Could navigate to editor or update resume list here
+    } catch (error: any) {
+      console.error('Upload error:', error)
+      const errorMessage = error?.message || 'Failed to upload resume'
+      toast.error(errorMessage)
+    } finally {
+      setIsUploading(false)
+      // Reset the input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
     }
   }
 
@@ -285,6 +331,15 @@ export default function DashboardPage() {
           </main>
         </div>
       </div>
+
+      {/* Hidden file input for resume upload */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".pdf"
+        className="hidden"
+        onChange={handleFileChange}
+      />
     </div>
   )
 }
