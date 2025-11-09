@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import multer from 'multer';
 import { uploadResume, critiqueResume, getResumeBlocks } from '../controllers/resumeController';
+import { chatWithAI } from '../controllers/chatController';
 
 const router = Router();
 
@@ -21,5 +22,8 @@ router.post('/resume/upload', upload.single('file'), uploadResume);
 // Other routes
 router.post('/resume/critique', upload.single('file'), critiqueResume);
 router.post('/resume/blocks/alternatives', getResumeBlocks);
+
+// Chat endpoint
+router.post('/chat', chatWithAI);
 
 export default router;
