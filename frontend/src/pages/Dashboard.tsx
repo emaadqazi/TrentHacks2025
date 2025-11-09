@@ -1,7 +1,6 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   DropdownMenu,
@@ -13,32 +12,39 @@ import {
 } from "@/components/ui/dropdown-menu"
 import {
   Blocks,
-  Plus,
-  FileText,
-  LayoutTemplate,
-  BarChart3,
-  MoreVertical,
-  Download,
-  Pencil,
-  Trash2,
-  Upload,
   LogOut,
+  Send,
   Loader2,
-  Sparkles,
-  Briefcase,
 } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
-import { NewResumeModal } from "@/components/modals/NewResumeModal"
+import { motion, AnimatePresence } from "framer-motion"
 import toast from "react-hot-toast"
-import { getUserResumes, createResume, deleteResume as deleteResumeFromFirestore } from "@/lib/firestore"
-import type { UserResume } from "@/lib/firestore"
+
+interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
+}
 
 export default function DashboardPage() {
   const { currentUser, logout } = useAuth()
   const navigate = useNavigate()
-  const [isNewResumeModalOpen, setIsNewResumeModalOpen] = useState(false)
-  const [resumes, setResumes] = useState<UserResume[]>([])
-  const [loading, setLoading] = useState(true)
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    {
+      id: '1',
+      role: 'assistant',
+      content: "Hey! The CS job market is brutal right now - no excuses, just action. How many LeetCode problems did you solve today? 💪",
+      timestamp: new Date(),
+    },
+  ])
+  const [inputMessage, setInputMessage] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const [welcomeText, setWelcomeText] = useState('')
+  const [welcomePosition, setWelcomePosition] = useState<'center' | 'top'>('center')
+  const [showChat, setShowChat] = useState(false)
+  const chatEndRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   const userDisplayName = currentUser?.displayName || currentUser?.email?.split('@')[0] || 'User'
   const userEmail = currentUser?.email || ''
@@ -49,88 +55,127 @@ export default function DashboardPage() {
     .toUpperCase()
     .slice(0, 2) || 'U'
 
-  // Load resumes from Firestore on mount
+  // Typewriter effect for welcome message
   useEffect(() => {
-    async function loadResumes() {
-      if (currentUser) {
-        try {
-          setLoading(true)
-          const userResumes = await getUserResumes(currentUser.uid)
-          setResumes(userResumes)
-        } catch (error) {
-          console.error('Error loading resumes:', error)
-          toast.error('Failed to load resumes')
-        } finally {
-          setLoading(false)
+    let typeInterval: ReturnType<typeof setInterval>
+    let finalTimeout: ReturnType<typeof setTimeout>
+
+    // Initial 1 second delay before starting animation
+    const initialDelay = setTimeout(() => {
+      const fullWelcomeMessage = `Welcome Back, ${userDisplayName.toUpperCase()}`
+      let currentIndex = 0
+      setWelcomeText('') // Start with empty text
+
+      typeInterval = setInterval(() => {
+        if (currentIndex < fullWelcomeMessage.length) {
+          setWelcomeText(fullWelcomeMessage.slice(0, currentIndex + 1))
+          currentIndex++
+        } else {
+          clearInterval(typeInterval)
+          // After typewriter completes, wait a bit then move welcome to top
+          finalTimeout = setTimeout(() => {
+            setWelcomePosition('top')
+            // Then fade in chat after welcome moves up
+            setTimeout(() => {
+              setShowChat(true)
+            }, 500)
+          }, 800)
         }
-      } else {
-        setLoading(false)
-      }
-    }
-    loadResumes()
-  }, [currentUser])
+      }, 100)
+    }, 1000)
 
-  const handleCreateResume = async (resumeData: { title: string; targetRole?: string; goals?: string; createdAt: string; template?: string }) => {
-    if (!currentUser) {
-      toast.error('You must be logged in to create a resume')
-      return ''
+    return () => {
+      clearTimeout(initialDelay)
+      clearInterval(typeInterval)
+      clearTimeout(finalTimeout)
     }
+  }, [userDisplayName])
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
+
+  // Focus input when chat appears
+  useEffect(() => {
+    if (showChat) {
+      inputRef.current?.focus()
+    }
+  }, [showChat])
+
+  const handleSendMessage = async () => {
+    if (!inputMessage.trim() || isLoading) return
+
+    const userMessage: ChatMessage = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: inputMessage.trim(),
+      timestamp: new Date(),
+    }
+
+    setMessages(prev => [...prev, userMessage])
+    setInputMessage('')
+    setIsLoading(true)
 
     try {
-      const resumeId = await createResume(currentUser.uid, {
-        title: resumeData.title,
-        targetRole: resumeData.targetRole,
-        goals: resumeData.goals,
-        template: resumeData.template,
+      // Prepare messages for API (exclude system message, it's handled on backend)
+      const apiMessages = [...messages, userMessage].map(msg => ({
+        role: msg.role,
+        content: msg.content,
+      }))
+
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ messages: apiMessages }),
       })
-      
-      // Reload resumes
-      const updatedResumes = await getUserResumes(currentUser.uid)
-      setResumes(updatedResumes)
-      
-      toast.success('Resume created successfully!')
-      return resumeId
-    } catch (error: any) {
-      console.error('Error creating resume:', error)
-      
-      // Show the actual error message
-      const errorMessage = error?.message || error?.code || 'Unknown error'
-      toast.error(`Failed to create resume: ${errorMessage}`)
-      return ''
-    }
-  }
 
-  const handleDeleteResume = async (id: string) => {
-    try {
-      await deleteResumeFromFirestore(id)
-      setResumes(prev => prev.filter(r => r.id !== id))
-      toast.success('Resume deleted')
+      if (!response.ok) {
+        throw new Error('Failed to get AI response')
+      }
+
+      const data = await response.json()
+
+      const aiMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: data.message,
+        timestamp: new Date(),
+      }
+
+      setMessages(prev => [...prev, aiMessage])
+
+      // Check if AI suggests going to resume critique
+      if (data.message.toLowerCase().includes('resume') && 
+          (data.message.toLowerCase().includes('critique') || 
+           data.message.toLowerCase().includes('work on'))) {
+        // Optionally navigate or show a button
+      }
     } catch (error) {
-      console.error('Error deleting resume:', error)
-      toast.error('Failed to delete resume')
+      console.error('Chat error:', error)
+      toast.error('Failed to send message. Please try again.')
+      
+      // Add error message
+      const errorMessage: ChatMessage = {
+        id: (Date.now() + 2).toString(),
+        role: 'assistant',
+        content: "Sorry, I'm having trouble connecting right now. Please try again in a moment! 😅",
+        timestamp: new Date(),
+      }
+      setMessages(prev => [...prev, errorMessage])
+    } finally {
+      setIsLoading(false)
+      inputRef.current?.focus()
     }
   }
 
-  const getRelativeTime = (dateString: string | any) => {
-    // Handle Firestore Timestamp
-    let date: Date
-    if (typeof dateString === 'string') {
-      date = new Date(dateString)
-    } else if (dateString?.toDate) {
-      date = dateString.toDate()
-    } else {
-      date = new Date()
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleSendMessage()
     }
-    
-    const now = new Date()
-    const diffInMs = now.getTime() - date.getTime()
-    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24))
-    
-    if (diffInDays === 0) return 'Today'
-    if (diffInDays === 1) return 'Yesterday'
-    if (diffInDays < 7) return `${diffInDays} days ago`
-    if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} week${Math.floor(diffInDays / 7) > 1 ? 's' : ''} ago`
-    return `${Math.floor(diffInDays / 30)} month${Math.floor(diffInDays / 30) > 1 ? 's' : ''} ago`
   }
 
   const handleLogout = async () => {
@@ -143,7 +188,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#18100a] via-[#221410] to-[#0f0b08]">
+    <div className="min-h-screen bg-gradient-to-br from-[#1a0f08] via-[#221410] to-[#1a0f08]">
       {/* Wood grain texture overlay */}
       <div className="absolute inset-0 opacity-[0.15] pointer-events-none" style={{
         backgroundImage: `url("data:image/svg+xml,%3Csvg width='200' height='200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='wood'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.08' numOctaves='4' seed='1' /%3E%3CfeColorMatrix values='0 0 0 0 0.35, 0 0 0 0 0.24, 0 0 0 0 0.15, 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23wood)' /%3E%3C/svg%3E")`,
@@ -151,7 +196,12 @@ export default function DashboardPage() {
       }} />
       
       {/* Top Navigation */}
-      <nav className="border-b border-[#8B6F47]/20 bg-[#221410]/80 backdrop-blur-xl relative z-10">
+      <motion.nav 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: welcomePosition === 'top' ? 1 : 0, y: welcomePosition === 'top' ? 0 : -20 }}
+        transition={{ duration: 0.5 }}
+        className="border-b border-[#8B6F47]/30 bg-[#221410]/90 backdrop-blur-xl relative z-10"
+      >
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
           <div className="flex items-center gap-8">
             <Link to="/dashboard" className="flex items-center gap-2">
@@ -217,203 +267,168 @@ export default function DashboardPage() {
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-          </nav>
-          <div className="container mx-auto px-4 py-8 relative z-10">
-            <div className="grid gap-8 lg:grid-cols-[280px_1fr]">
-          {/* Sidebar */}
-          <aside className="space-y-6">
-            <Card className="border-2 border-[#8B6F47]/30 bg-[#221410]/90 backdrop-blur-xl">
-              <CardContent className="p-4 space-y-3">
-                <Button
-                  onClick={() => setIsNewResumeModalOpen(true)}
-                  className="w-full justify-start gap-2 bg-gradient-to-r from-[#3a5f24] to-[#253f12] text-white hover:from-[#4a7534] hover:to-[#355222]"
-                  size="lg"
-                >
-                  <Plus className="h-5 w-5" />
-                  New Resume
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="w-full justify-start gap-2 bg-[#18100a]/60 border-[#8B6F47]/30 text-[#F5F1E8] hover:bg-[#3a5f24]/20 hover:border-[#3a5f24]/50" 
-                  size="default"
-                  onClick={() => setIsNewResumeModalOpen(true)}
-                >
-                  <Upload className="h-4 w-4" />
-                  Upload Resume
-                </Button>
-              </CardContent>
-            </Card>
-            <Card className="border-2 border-[#8B6F47]/30 bg-[#221410]/90 backdrop-blur-xl">
-              <CardContent className="p-4 space-y-3">
-                <h3 className="text-sm font-semibold text-[#F5F1E8] mb-2">Quick Actions</h3>
-                <Link
-                  to="/dashboard"
-                  className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium bg-[#3a5f24]/20 text-[#F5F1E8]"
-                >
-                  <FileText className="h-4 w-4" />
-                  Recent Resumes
-                </Link>
-                <Link
-                  to="/critique"
-                  className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-[#C9B896] hover:bg-[#3a5f24]/10 hover:text-[#F5F1E8] transition-colors"
-                >
-                  <Sparkles className="h-4 w-4" />
-                  Resume Critique
-                </Link>
-                <Link
-                  to="/job-tracker"
-                  className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-[#C9B896] hover:bg-[#3a5f24]/10 hover:text-[#F5F1E8] transition-colors"
-                >
-                  <Briefcase className="h-4 w-4" />
-                  Job Tracker
-                </Link>
-                <Link
-                  to="/templates"
-                  className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-[#C9B896] hover:bg-[#3a5f24]/10 hover:text-[#F5F1E8] transition-colors"
-                >
-                  <LayoutTemplate className="h-4 w-4" />
-                  Template Library
-                </Link>
-                <Link
-                  to="#"
-                  className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-[#C9B896] hover:bg-[#3a5f24]/10 hover:text-[#F5F1E8] transition-colors"
-                >
-                  <BarChart3 className="h-4 w-4" />
-                  Analytics
-                </Link>
-              </CardContent>
-            </Card>
-          </aside>
+      </motion.nav>
 
-              {/* Main Content */}
-              <main className="space-y-6">
-                <div>
-                  <h1 className="text-3xl font-bold tracking-tight text-[#F5F1E8] mb-2">My Resumes</h1>
-                  <p className="text-[#C9B896]">Manage and edit your resume collection</p>
-                </div>
+      {/* Welcome Message - Centered or Top */}
+      {welcomePosition === 'center' ? (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: welcomeText ? 1 : 0 }}
+          transition={{ duration: 0.3 }}
+          className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none"
+        >
+          <h1 className="text-5xl md:text-6xl font-semibold text-[#F5F1E8] tracking-tight">
+            {welcomeText}
+            {welcomeText && <span className="animate-pulse">|</span>}
+          </h1>
+        </motion.div>
+      ) : (
+        <motion.div
+          initial={{ opacity: 0, y: -50 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="text-center py-4 relative z-10"
+        >
+          <h1 className="text-2xl md:text-3xl font-semibold text-[#F5F1E8] tracking-tight">
+            {welcomeText}
+            {welcomeText && <span className="animate-pulse">|</span>}
+          </h1>
+        </motion.div>
+      )}
 
-                {loading ? (
-                  <Card className="border-2 border-[#8B6F47]/30 bg-[#221410]/90 backdrop-blur-xl">
-                    <CardContent className="flex flex-col items-center justify-center py-16">
-                      <Loader2 className="h-10 w-10 animate-spin text-[#3a5f24] mb-4" />
-                      <p className="text-[#C9B896]">Loading your resumes...</p>
-                    </CardContent>
-                  </Card>
-                ) : resumes.length > 0 ? (
-                  <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                    {resumes.map((resume) => (
-                  <Card key={resume.id} className="group border-2 border-[#8B6F47]/30 overflow-hidden transition-all hover:shadow-xl hover:shadow-[#3a5f24]/10 bg-[#221410]/90 backdrop-blur-xl">
-                    <div className="aspect-[8.5/11] bg-[#18100a]/60 border-b border-[#8B6F47]/30 relative overflow-hidden">
-                      <div className="absolute inset-0 bg-gradient-to-br from-[#221410]/50 to-[#18100a] p-6">
-                        <div className="space-y-3">
-                          <div className="h-3 w-3/4 rounded bg-[#F5F1E8]/20" />
-                          <div className="h-2 w-1/2 rounded bg-[#F5F1E8]/10" />
-                          <div className="mt-6 space-y-2">
-                            <div className="h-2 w-full rounded bg-[#F5F1E8]/10" />
-                            <div className="h-2 w-5/6 rounded bg-[#F5F1E8]/10" />
-                            <div className="h-2 w-4/6 rounded bg-[#F5F1E8]/10" />
-                          </div>
+      {/* Main Content - Centered Chat Interface */}
+      {showChat && (
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.8, delay: 0.2 }}
+          className="container mx-auto px-4 py-8 relative z-10"
+        >
+          <div className="max-w-4xl mx-auto flex flex-col h-[calc(100vh-8rem)]">
+            {/* Chat Container */}
+            <div className="flex-1 flex flex-col bg-[#221410]/90 backdrop-blur-xl border border-[#8B6F47]/20 rounded-xl shadow-xl overflow-hidden">
+            {/* Chat Messages */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              <AnimatePresence>
+                {messages.map((message) => (
+                  <motion.div
+                    key={message.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className={`flex items-start gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    {message.role === 'assistant' && (
+                      <div className="flex-shrink-0">
+                        <div className="w-12 h-12 rounded-lg overflow-hidden border-2 border-[#527853]/50 shadow-lg">
+                          <img 
+                            src="/NewAndImproved.jpg" 
+                            alt="AI Assistant" 
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              // Fallback to gradient box if image fails to load
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                              const parent = target.parentElement;
+                              if (parent) {
+                                parent.innerHTML = '<div class="w-full h-full bg-gradient-to-br from-[#527853] to-[#3a5f24] flex items-center justify-center"><span class="text-white font-bold text-sm">AI</span></div>';
+                              }
+                            }}
+                          />
                         </div>
                       </div>
+                    )}
+                    <div
+                      className={`max-w-[75%] rounded-2xl px-4 py-3 ${
+                        message.role === 'assistant'
+                          ? 'bg-gradient-to-br from-[#527853]/20 to-[#3a5f24]/20 border border-[#527853]/30 text-[#F5F1E8]'
+                          : 'bg-[#1a0f08]/60 border border-[#8B6F47]/20 text-[#F5F1E8]'
+                      }`}
+                    >
+                      <p className="text-sm leading-relaxed font-medium">{message.content}</p>
                     </div>
-                        <CardContent className="p-4">
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex-1 min-w-0">
-                              <h3 className="font-semibold text-[#F5F1E8] truncate">{resume.title}</h3>
-                              {resume.targetRole && (
-                                <p className="text-xs text-[#C9B896] mt-1">{resume.targetRole}</p>
-                              )}
-                              {resume.template && (
-                                <p className="text-xs text-[#C9B896]">{resume.template}</p>
-                              )}
-                              <p className="text-xs text-[#C9B896]">{getRelativeTime(resume.createdAt)}</p>
-                            </div>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-[#F5F1E8]/10 text-[#C9B896] hover:text-[#F5F1E8]">
-                                  <MoreVertical className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="bg-[#221410] border-[#8B6F47]/30">
-                                <DropdownMenuItem 
-                                  className="text-[#F5F1E8] focus:bg-[#3a5f24]/20 focus:text-[#F5F1E8]"
-                                  onClick={() => navigate(`/editor/${resume.id}`)}
-                                >
-                                  <Pencil className="mr-2 h-4 w-4" />
-                                  Edit
-                                </DropdownMenuItem>
-                                <DropdownMenuItem className="text-[#F5F1E8] focus:bg-[#3a5f24]/20 focus:text-[#F5F1E8]">
-                                  <Download className="mr-2 h-4 w-4" />
-                                  Download
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator className="bg-[#8B6F47]/30" />
-                                <DropdownMenuItem 
-                                  className="text-red-400 focus:bg-red-500/20 focus:text-red-400"
-                                  onClick={() => handleDeleteResume(resume.id)}
-                                >
-                                  <Trash2 className="mr-2 h-4 w-4" />
-                                  Delete
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                          <div className="mt-4 flex gap-2">
-                            <Button 
-                              size="sm" 
-                              className="flex-1 bg-gradient-to-r from-[#3a5f24] to-[#253f12] text-white hover:from-[#4a7534] hover:to-[#355222]"
-                              onClick={() => navigate(`/editor/${resume.id}`)}
-                            >
-                              <Pencil className="mr-2 h-3 w-3" />
-                              Edit
-                            </Button>
-                            <Button size="sm" variant="outline" className="border-[#8B6F47]/30 text-[#C9B896] hover:bg-[#3a5f24]/20 hover:text-[#F5F1E8] hover:border-[#3a5f24]/50">
-                              <Download className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </CardContent>
-                  </Card>
+                    {message.role === 'user' && (
+                      <div className="flex-shrink-0">
+                        <Avatar className="h-10 w-10">
+                          <AvatarImage src={currentUser?.photoURL || undefined} alt={userDisplayName} />
+                          <AvatarFallback className="bg-gradient-to-br from-[#3a5f24] to-[#253f12] text-white text-xs">
+                            {userInitials}
+                          </AvatarFallback>
+                        </Avatar>
+                      </div>
+                    )}
+                  </motion.div>
                 ))}
-              </div>
-            ) : (
-              <Card className="border-2 border-dashed border-[#8B6F47]/30 bg-[#221410]/50 backdrop-blur-xl">
-                <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-                  <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-[#3a5f24]/20">
-                    <FileText className="h-10 w-10 text-[#3a5f24]" />
-                  </div>
-                  <h3 className="mb-2 text-lg font-semibold text-[#F5F1E8]">No resumes yet</h3>
-                  <p className="mb-6 text-sm text-[#C9B896] max-w-sm">
-                    Start building your first resume or upload an existing one to get started
-                  </p>
-                  <div className="flex gap-3">
-                    <Button 
-                      onClick={() => setIsNewResumeModalOpen(true)}
-                      className="bg-gradient-to-r from-[#3a5f24] to-[#253f12] text-white hover:from-[#4a7534] hover:to-[#355222]"
-                    >
-                      <Plus className="mr-2 h-4 w-4" />
-                      Create New Resume
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      className="border-[#8B6F47]/30 text-[#C9B896] hover:bg-[#3a5f24]/20 hover:text-[#F5F1E8] hover:border-[#3a5f24]/50"
-                      onClick={() => setIsNewResumeModalOpen(true)}
-                    >
-                      <Upload className="mr-2 h-4 w-4" />
-                      Upload Resume
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </main>
-        </div>
-      </div>
+              </AnimatePresence>
 
-      {/* New Resume Modal */}
-      <NewResumeModal 
-        isOpen={isNewResumeModalOpen} 
-        onClose={() => setIsNewResumeModalOpen(false)}
-        onCreateResume={handleCreateResume}
-      />
+              {/* Typing Indicator */}
+              {isLoading && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="flex items-start gap-3"
+                >
+                  <div className="flex-shrink-0">
+                    <div className="w-12 h-12 rounded-lg overflow-hidden border-2 border-[#527853]/50 shadow-lg">
+                      <img 
+                        src="/AI_ResuBlocks.jpg" 
+                        alt="AI Assistant" 
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          const parent = target.parentElement;
+                          if (parent) {
+                            parent.innerHTML = '<div class="w-full h-full bg-gradient-to-br from-[#527853] to-[#3a5f24] flex items-center justify-center"><span class="text-white font-bold text-sm">AI</span></div>';
+                          }
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <div className="bg-gradient-to-br from-[#527853]/20 to-[#3a5f24]/20 border border-[#527853]/30 rounded-2xl px-4 py-3">
+                    <div className="flex gap-1">
+                      <div className="w-2 h-2 bg-[#527853] rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                      <div className="w-2 h-2 bg-[#527853] rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                      <div className="w-2 h-2 bg-[#527853] rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              <div ref={chatEndRef} />
+            </div>
+
+            {/* Input Area */}
+            <div className="border-t border-[#8B6F47]/20 p-4 bg-[#1a0f08]/40">
+              <div className="flex items-center gap-3">
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={inputMessage}
+                  onChange={(e) => setInputMessage(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Type your response..."
+                  disabled={isLoading || !showChat}
+                  className="flex-1 bg-[#221410]/60 border border-[#8B6F47]/30 rounded-lg px-4 py-3 text-[#F5F1E8] placeholder:text-[#C9B896] focus:outline-none focus:ring-2 focus:ring-[#527853]/50 focus:border-[#527853] disabled:opacity-50 disabled:cursor-not-allowed"
+                />
+                <Button
+                  onClick={handleSendMessage}
+                  disabled={!inputMessage.trim() || isLoading || !showChat}
+                  className="bg-gradient-to-r from-[#527853] to-[#3a5f24] hover:from-[#628963] hover:to-[#4a7534] text-white px-6 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <Send className="h-5 w-5" />
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+      )}
     </div>
   )
 }

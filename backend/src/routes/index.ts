@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import multer from 'multer';
 import { uploadResume, critiqueResume, getResumeBlocks } from '../controllers/resumeController';
 import { getJobApplicationStats, suggestJobMatches, getUpcomingDeadlines } from '../controllers/jobApplicationController';
+import { chatWithAI } from '../controllers/chatController';
 
 const router = Router();
 
@@ -27,5 +28,8 @@ router.post('/resume/blocks/alternatives', getResumeBlocks);
 router.get('/job-applications/stats', getJobApplicationStats);
 router.post('/job-applications/suggest-matches', suggestJobMatches);
 router.get('/job-applications/deadlines', getUpcomingDeadlines);
+
+// Chat endpoint
+router.post('/chat', chatWithAI);
 
 export default router;
