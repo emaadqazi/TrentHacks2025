@@ -1,43 +1,75 @@
 import { useState, useEffect } from "react"
-import { Link } from "react-router-dom"
+import { Link, useParams } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Blocks, ArrowLeft, Save, Download } from "lucide-react"
-import type { Resume, JobDescription, SuggestionBlock, MatchAnalysis, Section } from "@/types/resume"
+import { Blocks, ArrowLeft, Loader2 } from "lucide-react"
+import type { Resume, JobDescription, SuggestionBlock, MatchAnalysis } from "@/types/resume"
 import JobDescriptionPanel from "@/components/block-editor/JobDescriptionPanel"
 import ResumeCanvas from "@/components/block-editor/ResumeCanvas"
 import SuggestionsPanel from "@/components/block-editor/SuggestionsPanel"
 import MatchScoreBar from "@/components/block-editor/MatchScoreBar"
-import LivePreview from "@/components/block-editor/LivePreview"
-import AISuggestionsPanel from "@/components/block-editor/AISuggestionsPanel"
+import { getResume, updateResumeData } from "@/lib/firestore"
+import type { UserResume } from "@/lib/firestore"
+import toast from "react-hot-toast"
 
 export default function BlockEditor() {
+  const { id: resumeId } = useParams<{ id: string }>()
+  const [resumeMetadata, setResumeMetadata] = useState<UserResume | null>(null)
   const [resume, setResume] = useState<Resume | null>(null)
   const [jobDescription, setJobDescription] = useState<JobDescription | null>(null)
   const [suggestions] = useState<SuggestionBlock[]>([])
   const [matchAnalysis] = useState<MatchAnalysis | null>(null)
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null)
-  const [showJobDescription, setShowJobDescription] = useState(true)
-  const [aiSuggestions, setAiSuggestions] = useState<{
-    skills?: string[]
-    summary?: string[]
-    bullets?: Array<{ text: string; sectionType?: Section['type'] }>
-  }>({})
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
 
-  // Load uploaded resume from localStorage on mount
+  // Load resume data from Firestore
   useEffect(() => {
-    const uploadedResumeData = localStorage.getItem('uploadedResume')
-    if (uploadedResumeData) {
+    async function loadResume() {
+      if (!resumeId) {
+        setLoading(false)
+        return
+      }
+
       try {
-        const parsedResume = JSON.parse(uploadedResumeData)
-        setResume(parsedResume)
-        // Clear localStorage after loading
-        localStorage.removeItem('uploadedResume')
+        const data = await getResume(resumeId)
+        if (data) {
+          setResumeMetadata(data)
+          if (data.resumeData) {
+            setResume(data.resumeData)
+          }
+        } else {
+          toast.error('Resume not found')
+        }
       } catch (error) {
-        console.error('Error parsing uploaded resume:', error)
+        console.error('Error loading resume:', error)
+        toast.error('Failed to load resume')
+      } finally {
+        setLoading(false)
       }
     }
-  }, [])
+
+    loadResume()
+  }, [resumeId])
+
+  // Auto-save resume data when it changes
+  useEffect(() => {
+    if (!resumeId || !resume || loading) return
+
+    const timeoutId = setTimeout(async () => {
+      try {
+        setSaving(true)
+        await updateResumeData(resumeId, resume)
+      } catch (error) {
+        console.error('Error saving resume:', error)
+        toast.error('Failed to save changes')
+      } finally {
+        setSaving(false)
+      }
+    }, 1000) // Debounce for 1 second
+
+    return () => clearTimeout(timeoutId)
+  }, [resume, resumeId, loading])
 
   const handleJobDescriptionAnalyze = (jd: JobDescription) => {
     setJobDescription(jd)
@@ -157,49 +189,75 @@ export default function BlockEditor() {
     console.log("Replacing block:", originalBlockId, "with:", suggestionId)
   }
 
-  const handleSaveResume = () => {
-    // TODO: Save resume
-    console.log("Saving resume")
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#18100a] via-[#221410] to-[#0f0b08] flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-10 w-10 animate-spin text-[#3a5f24] mx-auto mb-4" />
+          <p className="text-[#C9B896]">Loading your resume...</p>
+        </div>
+      </div>
+    )
   }
 
-  const handleExport = () => {
-    // TODO: Export resume
-    console.log("Exporting resume")
+  if (!resumeMetadata && !loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#18100a] via-[#221410] to-[#0f0b08] flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-[#F5F1E8] text-xl mb-4">Resume not found</p>
+          <Link to="/dashboard">
+            <Button className="bg-gradient-to-r from-[#3a5f24] to-[#253f12] text-white hover:from-[#4a7534] hover:to-[#355222]">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Dashboard
+            </Button>
+          </Link>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-[#18100a] via-[#221410] to-[#0f0b08]">
+      {/* Wood grain texture overlay */}
+      <div className="absolute inset-0 opacity-[0.15] pointer-events-none" style={{
+        backgroundImage: `url("data:image/svg+xml,%3Csvg width='200' height='200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='wood'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.08' numOctaves='4' seed='1' /%3E%3CfeColorMatrix values='0 0 0 0 0.35, 0 0 0 0 0.24, 0 0 0 0 0.15, 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23wood)' /%3E%3C/svg%3E")`,
+        backgroundSize: '400px 400px'
+      }} />
+
       {/* Top Navigation */}
-      <nav className="border-b bg-card sticky top-0 z-50">
+      <nav className="border-b border-[#8B6F47]/20 bg-[#221410]/80 backdrop-blur-xl sticky top-0 z-50 relative">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
           <div className="flex items-center gap-4">
             <Link to="/dashboard">
-              <Button variant="ghost" size="sm">
+              <Button variant="ghost" size="sm" className="text-[#C9B896] hover:bg-[#F5F1E8]/10 hover:text-[#F5F1E8]">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back
               </Button>
             </Link>
             <div className="flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
-                <Blocks className="h-5 w-5 text-primary-foreground" />
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-[#3a5f24] to-[#253f12]">
+                <Blocks className="h-5 w-5 text-white" />
               </div>
               <div>
-                <span className="text-lg font-bold text-foreground">
-                  {resume?.title || "New Resume"}
+                <span className="text-lg font-bold text-[#F5F1E8]">
+                  {resumeMetadata?.title || "New Resume"}
                 </span>
-                <p className="text-xs text-muted-foreground">Block Editor</p>
+                {resumeMetadata?.targetRole && (
+                  <p className="text-xs text-[#C9B896]">{resumeMetadata.targetRole}</p>
+                )}
               </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handleSaveResume}>
-              <Save className="mr-2 h-4 w-4" />
-              Save
-            </Button>
-            <Button size="sm" onClick={handleExport}>
-              <Download className="mr-2 h-4 w-4" />
-              Export
-            </Button>
+            {saving && (
+              <div className="flex items-center gap-2 text-[#C9B896] text-sm">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Saving...</span>
+              </div>
+            )}
+            {!saving && resume && (
+              <span className="text-[#3a5f24] text-sm">✓ Saved</span>
+            )}
           </div>
         </div>
       </nav>
@@ -207,94 +265,57 @@ export default function BlockEditor() {
       {/* Match Score Bar */}
       {matchAnalysis && <MatchScoreBar analysis={matchAnalysis} />}
 
-          {/* Main Layout - AI Suggestions and Preview Side by Side (Caffine AI Style) */}
-          <div className="container mx-auto px-4 py-4">
-            <div className="grid grid-cols-1 lg:grid-cols-[minmax(300px,400px)_1fr] gap-4 h-[calc(100vh-10rem)]">
-              {/* Left Panel - AI Suggestions (Caffine AI Style) */}
-              <div className="order-2 lg:order-1 overflow-hidden">
-                <AISuggestionsPanel
-                  suggestions={aiSuggestions}
-                  resume={resume}
-                  onAddSkill={handleAddSkill}
-                  onAddSummary={handleAddSummary}
-                  onAddBullet={handleAddBullet}
+      {/* Main 3-Panel Layout */}
+      <div className="container mx-auto px-4 py-6 relative z-10">
+        <div className="grid grid-cols-12 gap-6 h-[calc(100vh-200px)]">
+          {/* Left Panel - Job Description */}
+          <div className="col-span-3 overflow-y-auto">
+            <Card className="h-full border-2 border-[#8B6F47]/30 bg-[#221410]/90 backdrop-blur-xl">
+              <CardHeader>
+                <CardTitle className="text-lg text-[#F5F1E8]">Job Description</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <JobDescriptionPanel
+                  onAnalyze={handleJobDescriptionAnalyze}
+                  jobDescription={jobDescription}
                 />
-              </div>
-
-              {/* Right Panel - Live Preview (Caffine AI Style) */}
-              <div className="order-1 lg:order-2 overflow-hidden">
-                <LivePreview
-                  resume={resume}
-                  setResume={setResume}
-                  onBlockUpdate={(sectionId, blockId, text) => {
-                    // Sync updates between preview and editor
-                    if (resume) {
-                      const updatedResume = {
-                        ...resume,
-                        sections: resume.sections.map((section) =>
-                          section.id === sectionId
-                            ? {
-                                ...section,
-                                blocks: section.blocks.map((block) =>
-                                  block.id === blockId ? { ...block, text } : block
-                                ),
-                                subsections: section.subsections?.map((subsection) => ({
-                                  ...subsection,
-                                  blocks: subsection.blocks.map((block) =>
-                                    block.id === blockId ? { ...block, text } : block
-                                  ),
-                                })),
-                              }
-                            : section
-                        ),
-                      }
-                      setResume(updatedResume)
-                    }
-                  }}
-                />
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           </div>
 
-      {/* Job Description Panel (Collapsible - Top Right) */}
-      {showJobDescription && (
-        <div className="fixed top-20 right-6 z-50 w-80 max-h-96 overflow-y-auto">
-          <Card className="shadow-lg">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">Job Description</CardTitle>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowJobDescription(false)}
-                  className="h-6 w-6 p-0"
-                >
-                  ×
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <JobDescriptionPanel
-                onAnalyze={handleJobDescriptionAnalyze}
-                jobDescription={jobDescription}
-              />
-            </CardContent>
-          </Card>
-        </div>
-      )}
+          {/* Center Panel - Resume Canvas */}
+          <div className="col-span-6 overflow-y-auto">
+            <Card className="h-full border-2 border-[#8B6F47]/30 bg-[#221410]/90 backdrop-blur-xl">
+              <CardHeader>
+                <CardTitle className="text-lg text-[#F5F1E8]">Your Resume</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResumeCanvas
+                  resume={resume}
+                  setResume={setResume}
+                  selectedBlockId={selectedBlockId}
+                  onBlockSelect={setSelectedBlockId}
+                />
+              </CardContent>
+            </Card>
+          </div>
 
-      {/* Toggle Buttons */}
-      <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2">
-        {!showJobDescription && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowJobDescription(true)}
-            className="shadow-md"
-          >
-            Job Description
-          </Button>
-        )}
+          {/* Right Panel - Suggestions */}
+          <div className="col-span-3 overflow-y-auto">
+            <Card className="h-full border-2 border-[#8B6F47]/30 bg-[#221410]/90 backdrop-blur-xl">
+              <CardHeader>
+                <CardTitle className="text-lg text-[#F5F1E8]">Suggestions</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <SuggestionsPanel
+                  suggestions={suggestions}
+                  selectedBlockId={selectedBlockId}
+                  onReplace={handleBlockReplace}
+                />
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     </div>
   )

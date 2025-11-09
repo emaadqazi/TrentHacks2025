@@ -35,7 +35,7 @@ export default function JobDescriptionPanel({ onAnalyze, jobDescription }: JobDe
   return (
     <div className="space-y-4">
       <div>
-        <Label htmlFor="jd-text" className="text-sm font-medium mb-2 block">
+        <Label htmlFor="jd-text" className="text-sm font-medium mb-2 block text-[#F5F1E8]">
           Paste Job Description
         </Label>
         <textarea
@@ -43,7 +43,7 @@ export default function JobDescriptionPanel({ onAnalyze, jobDescription }: JobDe
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="Paste the job description here..."
-          className="w-full min-h-[300px] p-3 text-sm border rounded-md bg-background resize-none focus:outline-none focus:ring-2 focus:ring-primary"
+          className="w-full min-h-[300px] p-3 text-sm border border-[#8B6F47]/30 rounded-md bg-[#18100a]/60 text-[#F5F1E8] placeholder:text-[#8B6F47] resize-none focus:outline-none focus:ring-2 focus:ring-[#3a5f24] focus:border-[#3a5f24]"
           disabled={analyzing}
         />
       </div>
@@ -51,7 +51,7 @@ export default function JobDescriptionPanel({ onAnalyze, jobDescription }: JobDe
       <Button
         onClick={handleAnalyze}
         disabled={!text.trim() || analyzing}
-        className="w-full"
+        className="w-full bg-gradient-to-r from-[#3a5f24] to-[#253f12] text-white hover:from-[#4a7534] hover:to-[#355222]"
       >
         {analyzing ? (
           <>
@@ -67,22 +67,22 @@ export default function JobDescriptionPanel({ onAnalyze, jobDescription }: JobDe
       </Button>
 
       {jobDescription && (
-        <div className="space-y-3 pt-4 border-t">
+        <div className="space-y-3 pt-4 border-t border-[#8B6F47]/30">
           <div>
-            <h4 className="text-sm font-semibold mb-2">Extracted Keywords</h4>
+            <h4 className="text-sm font-semibold mb-2 text-[#F5F1E8]">Extracted Keywords</h4>
             <div className="flex flex-wrap gap-2">
               {jobDescription.keywords.map((keyword, idx) => (
-                <Badge key={idx} variant="secondary" className="text-xs">
+                <Badge key={idx} className="text-xs bg-[#8B6F47]/20 text-[#C9B896] border-[#8B6F47]/30">
                   {keyword}
                 </Badge>
               ))}
             </div>
           </div>
           <div>
-            <h4 className="text-sm font-semibold mb-2">Required Skills</h4>
+            <h4 className="text-sm font-semibold mb-2 text-[#F5F1E8]">Required Skills</h4>
             <div className="flex flex-wrap gap-2">
               {jobDescription.requiredSkills.map((skill, idx) => (
-                <Badge key={idx} variant="default" className="text-xs">
+                <Badge key={idx} className="text-xs bg-gradient-to-r from-[#3a5f24] to-[#253f12] text-white">
                   {skill}
                 </Badge>
               ))}
