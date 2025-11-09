@@ -18,8 +18,11 @@ import {
 } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 import { getUserProfile } from "@/lib/userProfile"
+import { subscribeToUserJobApplications } from "@/lib/firestore"
 import { motion, AnimatePresence } from "framer-motion"
 import toast from "react-hot-toast"
+import SpriteCharacter from "@/components/dashboard/SpriteCharacter"
+import XPBar from "@/components/dashboard/XPBar"
 
 interface ChatMessage {
   id: string;
@@ -45,8 +48,18 @@ export default function DashboardPage() {
   const [welcomePosition, setWelcomePosition] = useState<'center' | 'top'>('center')
   const [showChat, setShowChat] = useState(false)
   const [userProfilePhoto, setUserProfilePhoto] = useState<string | null>(null)
+  const [selectedSprite, setSelectedSprite] = useState<string>('sprite1')
+  const [jobApplicationCount, setJobApplicationCount] = useState(0)
   const chatEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  // XP System: Each job application = 10 XP
+  const XP_PER_JOB = 10
+  const XP_PER_LEVEL = 50 // 50 XP per level
+  const totalXp = jobApplicationCount * XP_PER_JOB
+  const level = Math.floor(totalXp / XP_PER_LEVEL) + 1
+  const xpToNextLevel = XP_PER_LEVEL
+  const currentXp = totalXp
 
   const userDisplayName = currentUser?.displayName || currentUser?.email?.split('@')[0] || 'User'
   const userFirstName = userDisplayName.split(' ')[0] // Get only first name
@@ -58,15 +71,32 @@ export default function DashboardPage() {
     .toUpperCase()
     .slice(0, 2) || 'U'
 
-  // Load user profile photo
+  // Load user profile photo and selected sprite
   useEffect(() => {
     if (currentUser) {
       getUserProfile(currentUser.uid).then((profile: any) => {
         if (profile?.profilePhotoUrl) {
           setUserProfilePhoto(profile.profilePhotoUrl)
         }
+        if (profile?.selectedAvatar) {
+          setSelectedSprite(profile.selectedAvatar)
+        }
       }).catch(console.error)
     }
+  }, [currentUser])
+
+  // Subscribe to job applications for XP tracking
+  useEffect(() => {
+    if (!currentUser) return
+
+    const unsubscribe = subscribeToUserJobApplications(
+      currentUser.uid,
+      (applications) => {
+        setJobApplicationCount(applications.length)
+      }
+    )
+
+    return () => unsubscribe()
   }, [currentUser])
 
   // Typewriter effect for welcome message
@@ -307,17 +337,30 @@ export default function DashboardPage() {
         </motion.div>
       )}
 
-      {/* Main Content - Centered Chat Interface */}
+      {/* Main Content - Layout with Sprite on Left, Chat on Right */}
       {showChat && (
         <motion.div 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.8, delay: 0.2 }}
-          className="container mx-auto px-4 py-8 relative z-10"
+          className="container mx-auto px-4 py-4 relative z-10"
         >
-          <div className="max-w-4xl mx-auto flex flex-col h-[calc(100vh-8rem)]">
+          <div className="flex gap-6 h-[calc(100vh-6rem)]">
+            {/* Left Side - Sprite Character and XP Bar */}
+            <motion.div
+              initial={{ opacity: 0, x: -50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8, delay: 0.4 }}
+              className="flex-shrink-0 w-72 flex flex-col items-center justify-center space-y-6 self-center"
+            >
+              <SpriteCharacter xp={currentXp} level={level} selectedSprite={selectedSprite} />
+              <XPBar currentXp={currentXp} xpToNextLevel={xpToNextLevel} level={level} />
+            </motion.div>
+
+            {/* Right Side - Chat Interface (moved up and to the right) */}
+            <div className="flex-1 flex flex-col max-w-5xl ml-auto h-[70vh] self-start pt-8">
             {/* Chat Container */}
-            <div className="flex-1 flex flex-col bg-[#221410]/90 backdrop-blur-xl border border-[#8B6F47]/20 rounded-xl shadow-xl overflow-hidden">
+            <div className="h-full flex flex-col bg-[#221410]/90 backdrop-blur-xl border border-[#8B6F47]/20 rounded-xl shadow-xl overflow-hidden">
             {/* Chat Messages */}
             <div className="flex-1 overflow-y-auto p-6 space-y-4">
               <AnimatePresence>
@@ -437,8 +480,9 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
-        </div>
-      </motion.div>
+            </div>
+          </div>
+        </motion.div>
       )}
     </div>
   )

@@ -10,6 +10,7 @@ import {
   getDocs,
   serverTimestamp,
   Timestamp,
+  onSnapshot,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import type { Resume } from '@/types/resume';
@@ -251,5 +252,46 @@ export async function getUserJobApplications(userId: string): Promise<JobApplica
   });
 
   return applications;
+}
+
+/**
+ * Subscribe to job applications for a user (real-time updates)
+ */
+export function subscribeToUserJobApplications(
+  userId: string,
+  callback: (applications: JobApplication[]) => void
+): () => void {
+  const appsRef = collection(db, 'jobApplications');
+  const q = query(
+    appsRef,
+    where('userId', '==', userId)
+  );
+
+  return onSnapshot(q, (querySnapshot) => {
+    const applications: JobApplication[] = [];
+    querySnapshot.forEach((doc) => {
+      applications.push(doc.data() as JobApplication);
+    });
+
+    // Sort by updatedAt in memory (most recent first)
+    applications.sort((a, b) => {
+      const getTimestamp = (date: Timestamp | string | Date | undefined): number => {
+        if (!date) return 0;
+        if (date instanceof Date) return date.getTime();
+        if (typeof date === 'string') return new Date(date).getTime();
+        if (date instanceof Timestamp) return date.toMillis();
+        if (typeof date === 'object' && 'toDate' in date) {
+          return (date as any).toDate().getTime();
+        }
+        return 0;
+      };
+
+      const aTime = getTimestamp(a.updatedAt);
+      const bTime = getTimestamp(b.updatedAt);
+      return bTime - aTime; // Descending order
+    });
+
+    callback(applications);
+  });
 }
 
