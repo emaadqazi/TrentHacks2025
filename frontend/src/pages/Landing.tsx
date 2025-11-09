@@ -13,7 +13,7 @@ export default function LandingPage() {
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
               <Blocks className="h-5 w-5 text-primary-foreground" />
             </div>
-            <span className="text-xl font-bold text-foreground">ResuBlocks</span>
+            <span className="text-xl font-bold text-foreground">Mission Employed</span>
           </Link>
           <div className="hidden items-center gap-6 md:flex">
             <Link
@@ -252,9 +252,9 @@ export default function LandingPage() {
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
                   <Blocks className="h-5 w-5 text-primary-foreground" />
                 </div>
-                <span className="text-xl font-bold text-foreground">ResuBlocks</span>
+                <span className="text-xl font-bold text-foreground">Mission Employed</span>
               </Link>
-              <p className="text-sm text-muted-foreground">Build your future, one block at a time.</p>
+              <p className="text-sm text-muted-foreground">Complete your mission, land your dream job.</p>
             </div>
             <div>
               <h4 className="mb-3 text-sm font-semibold text-foreground">Product</h4>
@@ -318,7 +318,7 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="mt-8 border-t pt-8 text-center text-sm text-muted-foreground">
-            © 2025 ResuBlocks. All rights reserved.
+            © 2025 Mission Employed. All rights reserved.
           </div>
         </div>
       </footer>
