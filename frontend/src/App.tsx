@@ -6,6 +6,7 @@ import DashboardPage from "./pages/Dashboard"
 import TemplatesPage from "./pages/Templates"
 import BlockEditor from "./pages/BlockEditor"
 import ResumeTest from "./pages/ResumeTest"
+import ResumeCritiquePage from "./pages/ResumeCritique"
 
 function App() {
   return (
@@ -51,6 +52,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <ResumeTest />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/critique"
+            element={
+              <ProtectedRoute>
+                <ResumeCritiquePage />
               </ProtectedRoute>
             }
           />

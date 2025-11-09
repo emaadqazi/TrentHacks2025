@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -24,6 +24,7 @@ import {
   Upload,
   LogOut,
   Loader2,
+  Sparkles,
 } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 import { NewResumeModal } from "@/components/modals/NewResumeModal"
@@ -140,46 +141,6 @@ export default function DashboardPage() {
     }
   }
 
-  const handleUploadClick = () => {
-    fileInputRef.current?.click()
-  }
-
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file) return
-
-    // Validate file type
-    if (file.type !== 'application/pdf') {
-      toast.error('Please upload a PDF file')
-      return
-    }
-
-    // Validate file size (10MB max)
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error('File size must be less than 10MB')
-      return
-    }
-
-    setIsUploading(true)
-
-    try {
-      const data = await resumeApi.uploadResume(file)
-      console.log('Resume uploaded successfully:', data)
-      toast.success('Resume uploaded successfully!')
-      // Could navigate to editor or update resume list here
-    } catch (error: any) {
-      console.error('Upload error:', error)
-      const errorMessage = error?.message || 'Failed to upload resume'
-      toast.error(errorMessage)
-    } finally {
-      setIsUploading(false)
-      // Reset the input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = ''
-      }
-    }
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#18100a] via-[#221410] to-[#0f0b08]">
       {/* Wood grain texture overlay */}
@@ -201,6 +162,12 @@ export default function DashboardPage() {
             <div className="hidden md:flex items-center gap-6">
               <Link to="/dashboard" className="text-sm font-medium text-[#F5F1E8]">
                 My Resumes
+              </Link>
+              <Link
+                to="/critique"
+                className="text-sm font-medium text-[#C9B896] hover:text-[#F5F1E8] transition-colors"
+              >
+                Resume Critique
               </Link>
               <Link
                 to="/templates"
@@ -278,6 +245,13 @@ export default function DashboardPage() {
                 >
                   <FileText className="h-4 w-4" />
                   Recent Resumes
+                </Link>
+                <Link
+                  to="/critique"
+                  className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-[#C9B896] hover:bg-[#3a5f24]/10 hover:text-[#F5F1E8] transition-colors"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  Resume Critique
                 </Link>
                 <Link
                   to="/templates"

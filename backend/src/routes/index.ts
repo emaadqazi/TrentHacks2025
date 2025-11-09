@@ -19,7 +19,7 @@ router.get('/health', (req: Request, res: Response) => {
 router.post('/resume/upload', upload.single('file'), uploadResume);
 
 // Other routes
-router.post('/resume/critique', critiqueResume);
+router.post('/resume/critique', upload.single('file'), critiqueResume);
 router.post('/resume/blocks/alternatives', getResumeBlocks);
 
 export default router;
