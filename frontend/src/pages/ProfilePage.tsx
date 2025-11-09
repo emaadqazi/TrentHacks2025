@@ -150,24 +150,43 @@ export default function ProfilePage() {
   };
 
   const handleResumeUpload = async (file: File) => {
-    if (!currentUser) return;
+    if (!currentUser) {
+      toast.error('You must be logged in to upload a resume');
+      return;
+    }
+
+    if (!file) {
+      toast.error('No file selected');
+      return;
+    }
 
     if (file.type !== 'application/pdf') {
       toast.error('Please upload a PDF file');
       return;
     }
 
+    // Check file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('File size must be less than 10MB');
+      return;
+    }
+
     setUploadingResume(true);
     
     try {
-      console.log('Uploading resume to Firebase Storage...');
+      console.log('Starting resume upload...');
+      console.log('User ID:', currentUser.uid);
+      console.log('File:', { name: file.name, size: file.size, type: file.type });
+      
       const resumeUrl = await uploadResumePDF(currentUser.uid, file);
-      console.log('Resume uploaded, URL:', resumeUrl);
+      console.log('Resume uploaded successfully, URL:', resumeUrl);
       
       await updateUserProfile(currentUser.uid, {
         resumePDFUrl: resumeUrl,
         resumeFileName: file.name,
       });
+      
+      console.log('Profile updated with resume URL');
       
       setProfile(prev => ({
         ...prev,
@@ -190,22 +209,30 @@ export default function ProfilePage() {
       }, 500);
     } catch (error: any) {
       console.error('Error uploading resume:', error);
-      toast.error(`Failed to upload resume: ${error?.message || 'Unknown error'}`);
+      console.error('Error details:', {
+        code: error?.code,
+        message: error?.message,
+        stack: error?.stack,
+      });
+      
+      let errorMessage = 'Failed to upload resume';
+      if (error?.message) {
+        errorMessage = error.message;
+      } else if (error?.code) {
+        errorMessage = `Upload failed: ${error.code}`;
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setUploadingResume(false);
     }
   };
 
-  const handleResumeFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      await handleResumeUpload(file);
-    }
-  };
-
   const onResumeDrop = (acceptedFiles: File[]) => {
-    if (acceptedFiles[0]) {
-      handleResumeUpload(acceptedFiles[0]);
+    if (acceptedFiles && acceptedFiles.length > 0) {
+      const file = acceptedFiles[0];
+      console.log('File dropped:', file.name, file.type, file.size);
+      handleResumeUpload(file);
     }
   };
 
@@ -215,7 +242,18 @@ export default function ProfilePage() {
       'application/pdf': ['.pdf'],
     },
     maxFiles: 1,
-    noClick: true,
+    noClick: false,
+    onDropRejected: (rejectedFiles) => {
+      console.error('File rejected:', rejectedFiles);
+      if (rejectedFiles && rejectedFiles.length > 0) {
+        const rejection = rejectedFiles[0];
+        if (rejection.errors && rejection.errors.length > 0) {
+          toast.error(`File rejected: ${rejection.errors[0].message}`);
+        } else {
+          toast.error('File rejected. Please upload a PDF file.');
+        }
+      }
+    },
   });
 
   const handleLogout = async () => {
@@ -422,7 +460,7 @@ export default function ProfilePage() {
               <div>
                 <h3 className="text-xl font-semibold text-[#F5F1E8] mb-4">Resume PDF</h3>
                 <div {...getResumeRootProps()} className="border-2 border-dashed border-[#8B6F47]/30 rounded-lg p-6 bg-[#1a0f08]/60 cursor-pointer hover:border-[#527853] transition-colors">
-                  <input {...getResumeInputProps()} onChange={handleResumeFileChange} className="hidden" disabled={uploadingResume} />
+                  <input {...getResumeInputProps()} className="hidden" disabled={uploadingResume} />
                   <div className="flex flex-col items-center gap-4">
                     <Upload className={`h-12 w-12 ${uploadingResume ? 'text-[#8B6F47]' : 'text-[#527853]'}`} />
                     <div className="text-center">
