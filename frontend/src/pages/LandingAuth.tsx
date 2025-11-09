@@ -62,9 +62,50 @@ export default function LandingAuthPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-[#18100a] via-[#221410] to-[#0f0b08] relative overflow-hidden">
+      {/* Wood grain texture - primary layer */}
+      <div className="absolute inset-0 opacity-[0.20] pointer-events-none" style={{
+        backgroundImage: `url("data:image/svg+xml,%3Csvg width='200' height='200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='wood'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.08' numOctaves='4' seed='1' /%3E%3CfeColorMatrix values='0 0 0 0 0.35, 0 0 0 0 0.24, 0 0 0 0 0.15, 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23wood)' /%3E%3C/svg%3E")`,
+        backgroundSize: '400px 400px'
+      }} />
+      
+      {/* Vertical wood lines */}
+      <div className="absolute inset-0 opacity-[0.10] pointer-events-none" style={{
+        backgroundImage: `repeating-linear-gradient(
+          90deg,
+          transparent,
+          transparent 80px,
+          rgba(89, 71, 51, 0.4) 80px,
+          rgba(89, 71, 51, 0.4) 82px,
+          transparent 82px,
+          transparent 200px,
+          rgba(89, 71, 51, 0.3) 200px,
+          rgba(89, 71, 51, 0.3) 201px
+        )`
+      }} />
+      
+      {/* Fine grain noise texture */}
+      <div className="absolute inset-0 opacity-[0.12] pointer-events-none mix-blend-overlay" style={{
+        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='2.5' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.6'/%3E%3C/svg%3E")`,
+        backgroundSize: '200px 200px'
+      }} />
+      
+      {/* Darker wood knots/imperfections */}
+      <div className="absolute inset-0 opacity-[0.08] pointer-events-none" style={{
+        backgroundImage: `radial-gradient(circle at 20% 30%, rgba(15, 11, 8, 0.9) 0%, transparent 3%),
+                          radial-gradient(circle at 75% 60%, rgba(15, 11, 8, 0.7) 0%, transparent 4%),
+                          radial-gradient(circle at 45% 80%, rgba(15, 11, 8, 0.8) 0%, transparent 2.5%),
+                          radial-gradient(circle at 85% 15%, rgba(15, 11, 8, 0.6) 0%, transparent 3.5%),
+                          radial-gradient(circle at 30% 70%, rgba(15, 11, 8, 0.7) 0%, transparent 2%)`
+      }} />
+      
+      {/* Subtle forest green accent blobs */}
+      <div className="absolute top-0 -right-40 w-96 h-96 bg-[#3a5f24]/10 rounded-full blur-3xl" />
+      <div className="absolute bottom-0 -left-40 w-96 h-96 bg-[#3a5f24]/10 rounded-full blur-3xl" />
+      <div className="absolute top-1/2 left-1/4 w-64 h-64 bg-[#3a5f24]/5 rounded-full blur-3xl" />
+      
       {/* Header */}
-      <header className="container mx-auto px-4 py-6">
+      <header className="container mx-auto px-4 py-6 relative z-10">
         <div className="flex items-center justify-between">
           <motion.div 
             className="flex items-center gap-4"
@@ -72,19 +113,19 @@ export default function LandingAuthPage() {
             animate={{ opacity: 1, x: 0, y: 0 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
           >
-            <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-primary shadow-lg">
-              <Blocks className="h-12 w-12 text-primary-foreground" />
+            <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-[#3a5f24] to-[#253f12] shadow-2xl shadow-[#3a5f24]/20">
+              <Blocks className="h-12 w-12 text-white" />
             </div>
-            <span className="text-5xl font-bold text-foreground">ResuBlocks</span>
+            <span className="text-5xl font-bold text-[#F5F1E8]">ResuBlocks</span>
           </motion.div>
           <div className="flex items-center gap-3">
-            <p className="text-sm text-muted-foreground hidden sm:block">
+            <p className="text-sm text-[#C9B896] hidden sm:block">
               {isSignUp ? "Already have an account?" : "Don't have an account?"}
             </p>
             <Button
               variant="ghost"
               onClick={() => setIsSignUp(!isSignUp)}
-              className="font-medium"
+              className="font-medium text-[#F5F1E8] hover:text-[#3a5f24] hover:bg-[#F5F1E8]/10"
             >
               {isSignUp ? "Sign In" : "Sign Up"}
             </Button>
@@ -93,17 +134,17 @@ export default function LandingAuthPage() {
       </header>
 
       {/* Main Content */}
-      <div className="container mx-auto px-4 py-16">
+      <div className="container mx-auto px-4 py-16 relative z-10">
         <div className="grid lg:grid-cols-2 gap-16 items-center max-w-6xl mx-auto">
           {/* Left: Hero Content */}
           <div className="space-y-8">
             <div className="space-y-4">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
-                <Sparkles className="h-4 w-4 text-primary" />
-                <span className="text-sm font-medium text-primary">AI-Powered Resume Builder</span>
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#3a5f24]/20 border border-[#3a5f24]/40 backdrop-blur-sm">
+                <Sparkles className="h-4 w-4 text-[#3a5f24]" />
+                <span className="text-sm font-medium text-[#3a5f24]">AI-Powered Resume Builder</span>
               </div>
               
-              <h1 className="text-5xl font-bold text-foreground leading-tight">
+              <h1 className="text-5xl font-bold text-[#F5F1E8] leading-tight drop-shadow-lg">
                 {("Build Your Future, ").split("").map((char, index) => (
                   <motion.span
                     key={`char-${index}`}
@@ -114,7 +155,7 @@ export default function LandingAuthPage() {
                     {char}
                   </motion.span>
                 ))}
-                <span className="text-primary">
+                <span className="text-[#3a5f24]">
                   {("One Block").split("").map((char, index) => (
                     <motion.span
                       key={`block-${index}`}
@@ -138,7 +179,7 @@ export default function LandingAuthPage() {
                 ))}
               </h1>
               
-              <p className="text-lg text-muted-foreground">
+              <p className="text-lg text-[#C9B896]">
                 The only resume builder that makes crafting the perfect resume as intuitive 
                 as building with blocks.
               </p>
@@ -150,24 +191,24 @@ export default function LandingAuthPage() {
                 {[1, 2, 3, 4, 5].map((i) => (
                   <CheckCircle 
                     key={i} 
-                    className="h-5 w-5 text-primary fill-primary/20" 
+                    className="h-5 w-5 text-[#3a5f24] fill-[#3a5f24]/20" 
                   />
                 ))}
               </div>
-              <p className="text-sm text-muted-foreground">
-                Trusted by <span className="font-semibold text-foreground">5,000+</span> students
+              <p className="text-sm text-[#C9B896]">
+                Trusted by <span className="font-semibold text-[#F5F1E8]">5,000+</span> students
               </p>
             </div>
           </div>
 
           {/* Right: Auth Form */}
           <div>
-            <Card className="border-2 shadow-lg">
+            <Card className="border-2 border-[#8B6F47]/20 shadow-2xl bg-gradient-to-br from-[#221410]/95 to-[#18100a]/95 backdrop-blur-xl">
               <CardHeader className="space-y-1 text-center">
-                <CardTitle className="text-2xl font-bold">
+                <CardTitle className="text-2xl font-bold text-[#F5F1E8]">
                   {isSignUp ? "Create your account" : "Welcome back"}
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-[#C9B896]">
                   {isSignUp 
                     ? "Sign up to start building your resume" 
                     : "Enter your credentials to continue"}
@@ -176,7 +217,7 @@ export default function LandingAuthPage() {
               <CardContent className="space-y-4">
                 <Button
                   variant="outline"
-                  className="w-full bg-background"
+                  className="w-full bg-[#2c1810]/50 border-[#8B6F47]/30 text-[#F5F1E8] hover:bg-[#4A7C2C]/20 hover:border-[#4A7C2C]/50 hover:text-[#4A7C2C] transition-all"
                   type="button"
                   onClick={handleGoogleSignIn}
                   disabled={loading}
@@ -204,7 +245,7 @@ export default function LandingAuthPage() {
                 
                 <Button
                   variant="outline"
-                  className="w-full bg-background"
+                  className="w-full bg-[#18100a]/60 border-[#8B6F47]/30 text-[#F5F1E8] hover:bg-[#3a5f24]/20 hover:border-[#3a5f24]/50 hover:text-[#3a5f24] transition-all"
                   type="button"
                   onClick={handleGithubSignIn}
                   disabled={loading}
@@ -215,17 +256,17 @@ export default function LandingAuthPage() {
 
                 <div className="relative">
                   <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
+                    <span className="w-full border-t border-[#8B6F47]/30" />
                   </div>
                   <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+                    <span className="bg-gradient-to-r from-[#221410] to-[#18100a] px-2 text-[#C9B896]">Or continue with</span>
                   </div>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                   {isSignUp && (
                     <div className="space-y-2">
-                      <Label htmlFor="name">Full Name</Label>
+                      <Label htmlFor="name" className="text-[#F5F1E8]">Full Name</Label>
                       <Input
                         id="name"
                         placeholder="John Doe"
@@ -234,11 +275,12 @@ export default function LandingAuthPage() {
                         onChange={(e) => setName(e.target.value)}
                         required={isSignUp}
                         disabled={loading}
+                        className="bg-[#18100a]/60 border-[#8B6F47]/30 text-[#F5F1E8] placeholder:text-[#8B6F47] focus:border-[#3a5f24] focus:ring-[#3a5f24]"
                       />
                     </div>
                   )}
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
+                    <Label htmlFor="email" className="text-[#F5F1E8]">Email</Label>
                     <Input
                       id="email"
                       placeholder="you@example.com"
@@ -247,10 +289,11 @@ export default function LandingAuthPage() {
                       onChange={(e) => setEmail(e.target.value)}
                       required
                       disabled={loading}
+                      className="bg-[#18100a]/60 border-[#8B6F47]/30 text-[#F5F1E8] placeholder:text-[#8B6F47] focus:border-[#4A7C2C] focus:ring-[#4A7C2C]"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="password">Password</Label>
+                    <Label htmlFor="password" className="text-[#F5F1E8]">Password</Label>
                     <Input
                       id="password"
                       placeholder="••••••••"
@@ -260,11 +303,12 @@ export default function LandingAuthPage() {
                       required
                       minLength={6}
                       disabled={loading}
+                      className="bg-[#18100a]/60 border-[#8B6F47]/30 text-[#F5F1E8] placeholder:text-[#8B6F47] focus:border-[#3a5f24] focus:ring-[#3a5f24]"
                     />
                   </div>
 
                   <Button
-                    className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+                    className="w-full bg-gradient-to-r from-[#3a5f24] to-[#253f12] text-white hover:from-[#4a7534] hover:to-[#355222] shadow-lg shadow-[#3a5f24]/20 transition-all"
                     type="submit"
                     disabled={loading}
                     size="lg"
@@ -275,12 +319,12 @@ export default function LandingAuthPage() {
                         {isSignUp ? "Creating account..." : "Signing in..."}
                       </>
                     ) : (
-                      isSignUp ? "Sign In" : "Sign In"
+                      isSignUp ? "Sign Up" : "Sign In"
                     )}
                   </Button>
                 </form>
 
-                <p className="text-center text-xs text-muted-foreground">
+                <p className="text-center text-xs text-[#C9B896]">
                   By continuing, you agree to our Terms of Service and Privacy Policy
                 </p>
               </CardContent>
