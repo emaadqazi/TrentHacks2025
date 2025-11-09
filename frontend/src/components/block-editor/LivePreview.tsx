@@ -1,18 +1,17 @@
 import { useState } from "react"
-import type { Resume, Section, Block } from "@/types/resume"
+import type { Resume, Block } from "@/types/resume"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { FileText, Plus, Trash2, X } from "lucide-react"
+import { FileText, X } from "lucide-react"
 
 interface LivePreviewProps {
   resume: Resume | null
   setResume: (resume: Resume) => void
   onBlockUpdate?: (sectionId: string, blockId: string, text: string) => void
-  onDragItem?: (type: 'skill' | 'summary' | 'bullet', text: string, sectionId?: string) => void
 }
 
 function getScoreColor(score?: number): string {
@@ -36,13 +35,13 @@ function getScoreIndicator(score?: number): string {
   return "🔴"
 }
 
-export default function LivePreview({ resume, setResume, onBlockUpdate, onDragItem }: LivePreviewProps) {
+export default function LivePreview({ resume, setResume, onBlockUpdate }: LivePreviewProps) {
   const [editingBlock, setEditingBlock] = useState<string | null>(null)
   const [editingText, setEditingText] = useState("")
   const [dragOverSection, setDragOverSection] = useState<string | null>(null)
   const [dragOverType, setDragOverType] = useState<'skill' | 'summary' | 'bullet' | null>(null)
 
-  const handleBlockEdit = (sectionId: string, block: Block) => {
+  const handleBlockEdit = (_sectionId: string, block: Block) => {
     setEditingBlock(block.id)
     setEditingText(block.text)
   }
@@ -102,7 +101,7 @@ export default function LivePreview({ resume, setResume, onBlockUpdate, onDragIt
   }
 
   // Drag and drop handlers
-  const handleDragOver = (e: React.DragEvent, sectionId: string, sectionType?: Section['type']) => {
+  const handleDragOver = (e: React.DragEvent, sectionId: string) => {
     e.preventDefault()
     e.stopPropagation()
     e.dataTransfer.dropEffect = 'move'
@@ -137,7 +136,7 @@ export default function LivePreview({ resume, setResume, onBlockUpdate, onDragIt
     }
   }
 
-  const handleDrop = (e: React.DragEvent, sectionId: string, sectionType?: Section['type']) => {
+  const handleDrop = (e: React.DragEvent, sectionId: string) => {
     e.preventDefault()
     e.stopPropagation()
     
@@ -512,9 +511,9 @@ export default function LivePreview({ resume, setResume, onBlockUpdate, onDragIt
                   className={`resume-section space-y-3 transition-all ${
                     isValidDropZone ? 'ring-2 ring-primary bg-primary/5 rounded-lg p-2' : ''
                   }`}
-                  onDragOver={(e) => handleDragOver(e, section.id, section.type)}
+                  onDragOver={(e) => handleDragOver(e, section.id)}
                   onDragLeave={handleDragLeave}
-                  onDrop={(e) => handleDrop(e, section.id, section.type)}
+                  onDrop={(e) => handleDrop(e, section.id)}
                 >
                   <div className="flex items-center justify-between border-b-2 border-primary pb-2">
                     <h2 className="text-lg font-bold text-primary uppercase tracking-wide">
