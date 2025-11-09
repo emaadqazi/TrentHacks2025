@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react"
-import { Link, useNavigate } from "react-router-dom"
+import { Link, useNavigate, useLocation } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
@@ -34,6 +34,7 @@ interface ChatMessage {
 export default function DashboardPage() {
   const { currentUser, logout } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: '1',
@@ -101,6 +102,21 @@ export default function DashboardPage() {
 
   // Typewriter effect for welcome message
   useEffect(() => {
+    // Check if we should skip animation (coming from profile page)
+    const skipAnimation = location.state?.skipAnimation
+    
+    if (skipAnimation) {
+      // Skip animation and show everything immediately
+      const fullWelcomeMessage = `Welcome Back, ${userFirstName}!`
+      setWelcomeText(fullWelcomeMessage)
+      setWelcomePosition('top')
+      setShowChat(true)
+      
+      // Clear the state so it doesn't persist
+      window.history.replaceState({}, document.title)
+      return
+    }
+
     let typeInterval: ReturnType<typeof setInterval>
     let finalTimeout: ReturnType<typeof setTimeout>
 
@@ -133,7 +149,7 @@ export default function DashboardPage() {
       clearInterval(typeInterval)
       clearTimeout(finalTimeout)
     }
-  }, [userFirstName])
+  }, [userFirstName, location.state])
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -254,8 +270,15 @@ export default function DashboardPage() {
             <span className="text-xl font-bold text-[#F5F1E8]">ResuBlocks</span>
           </Link>
           <div className="hidden md:flex items-center gap-6 absolute left-1/2 transform -translate-x-1/2">
-            <Link to="/dashboard" className="text-sm font-medium text-[#F5F1E8]">
-              My Resumes
+            <Link 
+              to="/dashboard" 
+              onClick={(e) => {
+                e.preventDefault();
+                navigate('/dashboard', { state: { skipAnimation: true } });
+              }}
+              className="text-sm font-medium text-[#F5F1E8]"
+            >
+              Home
             </Link>
             <Link
               to="/critique"
@@ -299,7 +322,6 @@ export default function DashboardPage() {
               >
                 Profile Settings
               </DropdownMenuItem>
-              <DropdownMenuItem className="text-[#F5F1E8] focus:bg-[#3a5f24]/20 focus:text-[#F5F1E8]">Billing</DropdownMenuItem>
               <DropdownMenuSeparator className="bg-[#8B6F47]/30" />
               <DropdownMenuItem onClick={handleLogout} className="text-[#F5F1E8] focus:bg-[#3a5f24]/20 focus:text-[#F5F1E8]">
                 <LogOut className="mr-2 h-4 w-4" />
@@ -328,7 +350,7 @@ export default function DashboardPage() {
           initial={{ opacity: 0, y: -50 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="text-center py-4 relative z-10"
+          className="text-center pt-12 pb-4 relative z-10"
         >
           <h1 className="text-2xl md:text-3xl font-semibold text-[#F5F1E8] tracking-tight">
             {welcomeText}
