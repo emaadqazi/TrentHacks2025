@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react"
 import { Link, useNavigate, useLocation } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { getApiUrl } from '@/lib/apiConfig';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -216,7 +217,7 @@ export default function DashboardPage() {
         content: msg.content,
       }))
 
-      const response = await fetch('/api/chat', {
+      const response = await fetch(getApiUrl('chat'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -225,7 +226,30 @@ export default function DashboardPage() {
       })
 
       if (!response.ok) {
-        throw new Error('Failed to get AI response')
+        const contentType = response.headers.get('content-type') || '';
+        let errorMessage = 'Failed to get AI response';
+        
+        try {
+          if (contentType.includes('application/json')) {
+            const errorData = await response.json();
+            errorMessage = errorData.error || errorData.message || errorMessage;
+          } else {
+            const textResponse = await response.text();
+            console.error('❌ Expected JSON but got:', contentType, textResponse.substring(0, 200));
+            errorMessage = `Server returned non-JSON response. Status: ${response.status}`;
+          }
+        } catch (e) {
+          errorMessage = `Server error: ${response.status}`;
+        }
+        throw new Error(errorMessage);
+      }
+
+      // Check content-type before parsing JSON
+      const contentType = response.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        const textResponse = await response.text();
+        console.error('❌ Expected JSON but got:', contentType, textResponse.substring(0, 200));
+        throw new Error(`Server returned non-JSON response. Content-Type: ${contentType}`);
       }
 
       const data = await response.json()

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { getApiUrl } from '@/lib/apiConfig';
 import {
   Select,
   SelectContent,
@@ -292,13 +293,36 @@ export default function QuestionsPage() {
         formData.append('resume', resumeFile);
       }
 
-      const response = await fetch('/api/questions/generate', {
+      const response = await fetch(getApiUrl('questions/generate'), {
         method: 'POST',
         body: formData,
       });
 
       if (!response.ok) {
-        throw new Error('Failed to generate interview questions');
+        const contentType = response.headers.get('content-type') || '';
+        let errorMessage = 'Failed to generate interview questions';
+        
+        try {
+          if (contentType.includes('application/json')) {
+            const errorData = await response.json();
+            errorMessage = errorData.error || errorData.message || errorMessage;
+          } else {
+            const textResponse = await response.text();
+            console.error('❌ Expected JSON but got:', contentType, textResponse.substring(0, 200));
+            errorMessage = `Server returned non-JSON response. Status: ${response.status}`;
+          }
+        } catch (e) {
+          errorMessage = `Server error: ${response.status}`;
+        }
+        throw new Error(errorMessage);
+      }
+
+      // Check content-type before parsing JSON
+      const contentType = response.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        const textResponse = await response.text();
+        console.error('❌ Expected JSON but got:', contentType, textResponse.substring(0, 200));
+        throw new Error(`Server returned non-JSON response. Content-Type: ${contentType}`);
       }
 
       const data = await response.json();
@@ -347,7 +371,7 @@ export default function QuestionsPage() {
 
     setIsEvaluating(true);
     try {
-      const response = await fetch('/api/questions/evaluate-answer', {
+      const response = await fetch(getApiUrl('questions/evaluate-answer'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -361,7 +385,30 @@ export default function QuestionsPage() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to evaluate answer');
+        const contentType = response.headers.get('content-type') || '';
+        let errorMessage = 'Failed to evaluate answer';
+        
+        try {
+          if (contentType.includes('application/json')) {
+            const errorData = await response.json();
+            errorMessage = errorData.error || errorData.message || errorMessage;
+          } else {
+            const textResponse = await response.text();
+            console.error('❌ Expected JSON but got:', contentType, textResponse.substring(0, 200));
+            errorMessage = `Server returned non-JSON response. Status: ${response.status}`;
+          }
+        } catch (e) {
+          errorMessage = `Server error: ${response.status}`;
+        }
+        throw new Error(errorMessage);
+      }
+
+      // Check content-type before parsing JSON
+      const contentType = response.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        const textResponse = await response.text();
+        console.error('❌ Expected JSON but got:', contentType, textResponse.substring(0, 200));
+        throw new Error(`Server returned non-JSON response. Content-Type: ${contentType}`);
       }
 
       const data: AnswerEvaluation = await response.json();

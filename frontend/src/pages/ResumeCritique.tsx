@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useDropzone } from 'react-dropzone';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { getApiUrl } from '@/lib/apiConfig';
 import {
   Select,
   SelectContent,
@@ -133,7 +134,7 @@ export default function ResumeCritiquePage() {
         queryParams.append('experienceLevel', experienceLevel);
       }
       const queryString = queryParams.toString();
-      const url = `/api/resume/critique${queryString ? `?${queryString}` : ''}`;
+      const url = `${getApiUrl('resume/critique')}${queryString ? `?${queryString}` : ''}`;
 
       const critiqueResponse = await fetch(url, {
         method: 'POST',
@@ -141,11 +142,35 @@ export default function ResumeCritiquePage() {
       });
 
       if (!critiqueResponse.ok) {
-        const errorData = await critiqueResponse.json().catch(() => ({ 
-          error: 'Failed to get critique',
-          details: `Server returned status ${critiqueResponse.status}`
-        }));
+        const contentType = critiqueResponse.headers.get('content-type') || '';
+        let errorData;
+        
+        try {
+          if (contentType.includes('application/json')) {
+            errorData = await critiqueResponse.json();
+          } else {
+            const textResponse = await critiqueResponse.text();
+            console.error('❌ Expected JSON but got:', contentType, textResponse.substring(0, 200));
+            errorData = { 
+              error: 'Failed to get critique',
+              details: `Server returned non-JSON response. Status: ${critiqueResponse.status}`
+            };
+          }
+        } catch (e) {
+          errorData = { 
+            error: 'Failed to get critique',
+            details: `Server returned status ${critiqueResponse.status}`
+          };
+        }
         throw new Error(errorData.error || errorData.details || `Server error: ${critiqueResponse.status}`);
+      }
+
+      // Check content-type before parsing JSON
+      const contentType = critiqueResponse.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        const textResponse = await critiqueResponse.text();
+        console.error('❌ Expected JSON but got:', contentType, textResponse.substring(0, 200));
+        throw new Error(`Server returned non-JSON response. Content-Type: ${contentType}`);
       }
 
       const critiqueData = await critiqueResponse.json();

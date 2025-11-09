@@ -29,20 +29,32 @@ export const resumeApi = {
 
       if (!response.ok) {
         let errorText = '';
-        const contentType = response.headers.get('content-type');
+        const contentType = response.headers.get('content-type') || '';
         
         try {
-          if (contentType && contentType.includes('application/json')) {
+          if (contentType.includes('application/json')) {
             const errorData = await response.json();
             errorText = errorData.error || errorData.message || JSON.stringify(errorData);
           } else {
             errorText = await response.text();
+            // If it's HTML, try to extract useful info
+            if (errorText.includes('<html>')) {
+              errorText = `Server returned HTML (likely an error page). Status: ${response.status}`;
+            }
           }
         } catch (e) {
           errorText = `Failed to parse error response: ${e}`;
         }
         console.error('❌ Upload failed:', response.status, errorText);
         throw new Error(errorText || `Upload failed with status ${response.status}`);
+      }
+
+      // Check content-type before parsing JSON
+      const contentType = response.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        const textResponse = await response.text();
+        console.error('❌ Expected JSON but got:', contentType, textResponse.substring(0, 200));
+        throw new Error(`Server returned non-JSON response. Content-Type: ${contentType}`);
       }
 
       const data = await response.json();
