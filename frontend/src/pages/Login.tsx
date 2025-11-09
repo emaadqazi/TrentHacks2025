@@ -77,7 +77,7 @@ export default function LoginPage() {
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
                 <Blocks className="h-6 w-6 text-primary-foreground" />
               </div>
-              <span className="text-2xl font-bold text-foreground">ResuBlocks</span>
+              <span className="text-2xl font-bold text-foreground">Mission Employed</span>
             </Link>
           </div>
           <Card className="border-2">
@@ -273,9 +273,9 @@ export default function LoginPage() {
             <div className="h-24 w-24 rounded-2xl bg-chart-3/30 backdrop-blur-sm animate-[fadeInUp_0.6s_ease-out_0.2s_both]" />
             <div className="h-24 w-24 rounded-2xl bg-primary/40 backdrop-blur-sm animate-[fadeInUp_0.6s_ease-out_0.3s_both]" />
           </div>
-          <h2 className="text-3xl font-bold text-foreground mt-8">Build Your Future, One Block at a Time</h2>
+          <h2 className="text-3xl font-bold text-foreground mt-8">Complete Your Mission, Land Your Dream Job</h2>
           <p className="text-lg text-muted-foreground">
-            Join thousands of students and professionals who have landed their dream jobs with ResuBlocks.
+            Join thousands of students and professionals who have landed their dream jobs with Mission Employed.
           </p>
         </div>
       </div>

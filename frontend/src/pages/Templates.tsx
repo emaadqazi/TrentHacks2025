@@ -77,7 +77,7 @@ export default function TemplatesPage() {
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-[#3a5f24] to-[#253f12]">
                 <Blocks className="h-5 w-5 text-white" />
               </div>
-              <span className="text-xl font-bold text-[#F5F1E8]">ResuBlocks</span>
+              <span className="text-xl font-bold text-[#F5F1E8]">Mission Employed</span>
             </Link>
             <div className="hidden md:flex items-center gap-6">
               <Link

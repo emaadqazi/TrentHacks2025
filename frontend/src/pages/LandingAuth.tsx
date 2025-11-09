@@ -116,7 +116,7 @@ export default function LandingAuthPage() {
             <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-[#3a5f24] to-[#253f12] shadow-2xl shadow-[#3a5f24]/20">
               <Blocks className="h-12 w-12 text-white" />
             </div>
-            <span className="text-5xl font-bold text-[#F5F1E8]">ResuBlocks</span>
+            <span className="text-5xl font-bold text-[#F5F1E8]">Mission Employed</span>
           </motion.div>
           <div className="flex items-center gap-3">
             <p className="text-sm text-[#C9B896] hidden sm:block">
@@ -145,7 +145,7 @@ export default function LandingAuthPage() {
               </div>
               
               <h1 className="text-5xl font-bold text-[#F5F1E8] leading-tight drop-shadow-lg">
-                {("Build Your Future, ").split("").map((char, index) => (
+                {("Complete Your Mission, ").split("").map((char, index) => (
                   <motion.span
                     key={`char-${index}`}
                     initial={{ opacity: 0 }}
@@ -156,32 +156,22 @@ export default function LandingAuthPage() {
                   </motion.span>
                 ))}
                 <span className="text-[#3a5f24]">
-                  {("One Block").split("").map((char, index) => (
+                  {("Land Your Dream Job").split("").map((char, index) => (
                     <motion.span
-                      key={`block-${index}`}
+                      key={`mission-${index}`}
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      transition={{ duration: 0.15, delay: (19 + index) * 0.05 }}
+                      transition={{ duration: 0.15, delay: (24 + index) * 0.05 }}
                     >
                       {char}
                     </motion.span>
                   ))}
                 </span>
-                {(" at a Time").split("").map((char, index) => (
-                  <motion.span
-                    key={`time-${index}`}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.05, delay: (28 + index) * 0.05 }}
-                  >
-                    {char}
-                  </motion.span>
-                ))}
               </h1>
               
               <p className="text-lg text-[#C9B896]">
-                The only resume builder that makes crafting the perfect resume as intuitive 
-                as building with blocks.
+                The career platform that turns your job search into achievable missions,
+                guiding you step-by-step to employment success.
               </p>
             </div>
 
