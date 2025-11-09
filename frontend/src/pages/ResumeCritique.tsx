@@ -185,6 +185,15 @@ export default function ResumeCritiquePage() {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login');
+    } catch (error) {
+      // Error handled by AuthContext
+    }
+  };
+
   const getScoreColor = (score: number) => {
     if (score >= 80) return 'text-green-400';
     if (score >= 60) return 'text-yellow-400';
@@ -243,55 +252,65 @@ export default function ResumeCritiquePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#1a0f08] via-[#221410] to-[#1a0f08]">
+      {/* Wood grain texture overlay */}
+      <div className="absolute inset-0 opacity-[0.15] pointer-events-none" style={{
+        backgroundImage: `url("data:image/svg+xml,%3Csvg width='200' height='200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='wood'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.08' numOctaves='4' seed='1' /%3E%3CfeColorMatrix values='0 0 0 0 0.35, 0 0 0 0 0.24, 0 0 0 0 0.15, 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23wood)' /%3E%3C/svg%3E")`,
+        backgroundSize: '400px 400px'
+      }} />
+      
       {/* Top Navigation */}
-      <nav className="border-b border-[#8B6F47]/30 bg-[#221410]/90 backdrop-blur-xl">
+      <nav className="border-b border-[#8B6F47]/30 bg-[#221410]/90 backdrop-blur-xl relative z-10">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
-          <div className="flex items-center gap-8">
-            <Link to="/" className="flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-[#3a5f24] to-[#253f12]">
-                <Blocks className="h-5 w-5 text-white" />
-              </div>
-              <span className="text-xl font-bold text-[#F5F1E8]">ResuBlocks</span>
-            </Link>
-            <div className="hidden md:flex items-center gap-6">
-              <Link to="/dashboard" className="text-sm font-medium text-[#C9B896] hover:text-[#F5F1E8] transition-colors">
-                My Resumes
-              </Link>
-              <Link
-                to="/critique"
-                className="text-sm font-medium text-[#F5F1E8]"
-              >
-                Resume Critique
-              </Link>
-              <Link
-                to="/templates"
-                className="text-sm font-medium text-[#C9B896] hover:text-[#F5F1E8] transition-colors"
-              >
-                Templates
-              </Link>
+          <Link to="/dashboard" className="flex items-center gap-2">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-[#3a5f24] to-[#253f12]">
+              <Blocks className="h-5 w-5 text-white" />
             </div>
+            <span className="text-xl font-bold text-[#F5F1E8]">ResuBlocks</span>
+          </Link>
+          <div className="hidden md:flex items-center gap-6 absolute left-1/2 transform -translate-x-1/2">
+            <Link to="/dashboard" className="text-sm font-medium text-[#C9B896] hover:text-[#F5F1E8] transition-colors">
+              My Resumes
+            </Link>
+            <Link
+              to="/critique"
+              className="text-sm font-medium text-[#F5F1E8]"
+            >
+              Resume Critique
+            </Link>
+            <Link
+              to="/job-tracker"
+              className="text-sm font-medium text-[#C9B896] hover:text-[#F5F1E8] transition-colors"
+            >
+              Job Tracker
+            </Link>
+            <Link
+              to="/questions"
+              className="text-sm font-medium text-[#C9B896] hover:text-[#F5F1E8] transition-colors"
+            >
+              Questions
+            </Link>
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-9 w-9 rounded-full hover:bg-[#F5F1E8]/10">
                 <Avatar className="h-9 w-9">
-                  <AvatarImage src="/abstract-geometric-shapes.png" alt="User" />
-                  <AvatarFallback className="bg-[#3a5f24] text-white">{userInitials}</AvatarFallback>
+                  <AvatarImage src={currentUser?.photoURL || undefined} alt={userDisplayName} />
+                  <AvatarFallback className="bg-gradient-to-br from-[#3a5f24] to-[#253f12] text-white">{userInitials}</AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56" align="end" forceMount>
+            <DropdownMenuContent className="w-56 bg-[#221410] border-[#8B6F47]/30" align="end" forceMount>
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">{userDisplayName}</p>
-                  <p className="text-xs leading-none text-muted-foreground">{userEmail}</p>
+                  <p className="text-sm font-medium leading-none text-[#F5F1E8]">{userDisplayName}</p>
+                  <p className="text-xs leading-none text-[#C9B896]">{userEmail}</p>
                 </div>
               </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => navigate('/dashboard')}>Dashboard</DropdownMenuItem>
-              <DropdownMenuItem>Profile Settings</DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={logout}>
+              <DropdownMenuSeparator className="bg-[#8B6F47]/30" />
+              <DropdownMenuItem className="text-[#F5F1E8] focus:bg-[#3a5f24]/20 focus:text-[#F5F1E8]">Profile Settings</DropdownMenuItem>
+              <DropdownMenuItem className="text-[#F5F1E8] focus:bg-[#3a5f24]/20 focus:text-[#F5F1E8]">Billing</DropdownMenuItem>
+              <DropdownMenuSeparator className="bg-[#8B6F47]/30" />
+              <DropdownMenuItem onClick={handleLogout} className="text-[#F5F1E8] focus:bg-[#3a5f24]/20 focus:text-[#F5F1E8]">
                 <LogOut className="mr-2 h-4 w-4" />
                 Log out
               </DropdownMenuItem>

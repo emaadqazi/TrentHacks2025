@@ -204,42 +204,34 @@ export default function DashboardPage() {
         className="border-b border-[#8B6F47]/30 bg-[#221410]/90 backdrop-blur-xl relative z-10"
       >
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
-          <div className="flex items-center gap-8">
-            <Link to="/dashboard" className="flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-[#3a5f24] to-[#253f12]">
-                <Blocks className="h-5 w-5 text-white" />
-              </div>
-              <span className="text-xl font-bold text-[#F5F1E8]">ResuBlocks</span>
-            </Link>
-            <div className="hidden md:flex items-center gap-6">
-              <Link to="/dashboard" className="text-sm font-medium text-[#F5F1E8]">
-                My Resumes
-              </Link>
-              <Link
-                to="/critique"
-                className="text-sm font-medium text-[#C9B896] hover:text-[#F5F1E8] transition-colors"
-              >
-                Resume Critique
-              </Link>
-              <Link
-                to="/job-tracker"
-                className="text-sm font-medium text-[#C9B896] hover:text-[#F5F1E8] transition-colors"
-              >
-                Job Tracker
-              </Link>
-              <Link
-                to="/templates"
-                className="text-sm font-medium text-[#C9B896] hover:text-[#F5F1E8] transition-colors"
-              >
-                Templates
-              </Link>
-              <Link
-                to="#"
-                className="text-sm font-medium text-[#C9B896] hover:text-[#F5F1E8] transition-colors"
-              >
-                Analytics
-              </Link>
+          <Link to="/dashboard" className="flex items-center gap-2">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-[#3a5f24] to-[#253f12]">
+              <Blocks className="h-5 w-5 text-white" />
             </div>
+            <span className="text-xl font-bold text-[#F5F1E8]">ResuBlocks</span>
+          </Link>
+          <div className="hidden md:flex items-center gap-6 absolute left-1/2 transform -translate-x-1/2">
+            <Link to="/dashboard" className="text-sm font-medium text-[#F5F1E8]">
+              My Resumes
+            </Link>
+            <Link
+              to="/critique"
+              className="text-sm font-medium text-[#C9B896] hover:text-[#F5F1E8] transition-colors"
+            >
+              Resume Critique
+            </Link>
+            <Link
+              to="/job-tracker"
+              className="text-sm font-medium text-[#C9B896] hover:text-[#F5F1E8] transition-colors"
+            >
+              Job Tracker
+            </Link>
+            <Link
+              to="/questions"
+              className="text-sm font-medium text-[#C9B896] hover:text-[#F5F1E8] transition-colors"
+            >
+              Questions
+            </Link>
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

@@ -3,6 +3,7 @@ import multer from 'multer';
 import { uploadResume, critiqueResume, getResumeBlocks } from '../controllers/resumeController';
 import { getJobApplicationStats, suggestJobMatches, getUpcomingDeadlines } from '../controllers/jobApplicationController';
 import { chatWithAI } from '../controllers/chatController';
+import { generateInterviewQuestions } from '../controllers/questionsController';
 
 const router = Router();
 
@@ -31,5 +32,8 @@ router.get('/job-applications/deadlines', getUpcomingDeadlines);
 
 // Chat endpoint
 router.post('/chat', chatWithAI);
+
+// Questions endpoint
+router.post('/questions/generate', upload.single('resume'), generateInterviewQuestions);
 
 export default router;
