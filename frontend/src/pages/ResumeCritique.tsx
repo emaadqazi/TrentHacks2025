@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useDropzone } from 'react-dropzone';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Select,
   SelectContent,
@@ -35,6 +34,36 @@ import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { PDFViewer } from '@/components/resume/PDFViewer';
 import { getUserProfile, getUserResumePDF } from '@/lib/userProfile';
+
+// Sprite options - pixel art characters
+const SPRITE_OPTIONS = [
+  { id: 'sprite1', name: 'Sprite 1', image: '/sprite1.png' },
+  { id: 'sprite2', name: 'Sprite 2', image: '/sprite2.png' },
+  { id: 'sprite3', name: 'Sprite 3', image: '/sprite3.png' },
+];
+
+// Component to render sprite avatar
+const SpriteAvatar = ({ spriteId, size = 64 }: { spriteId: string; size?: number }) => {
+  const sprite = SPRITE_OPTIONS.find(s => s.id === spriteId) || SPRITE_OPTIONS[0];
+  
+  return (
+    <div 
+      className="rounded-lg overflow-hidden bg-[#527853]/20 flex items-center justify-center" 
+      style={{ width: size, height: size }}
+    >
+      <img 
+        src={sprite.image} 
+        alt={sprite.name}
+        className="w-full h-full object-contain"
+        onError={(e) => {
+          // Fallback if image fails to load
+          const target = e.target as HTMLImageElement;
+          target.style.display = 'none';
+        }}
+      />
+    </div>
+  );
+};
 
 interface CritiqueScore {
   overall: number;
@@ -71,6 +100,7 @@ export default function ResumeCritiquePage() {
   const [displayedText, setDisplayedText] = useState('');
   const [showUpload, setShowUpload] = useState(true);
   const [userProfilePhoto, setUserProfilePhoto] = useState<string | null>(null);
+  const [selectedAvatar, setSelectedAvatar] = useState<string>('sprite1');
   const [jobTitle, setJobTitle] = useState<string>('');
   const [experienceLevel, setExperienceLevel] = useState<'entry' | 'mid' | 'senior' | 'auto'>('auto');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -163,6 +193,9 @@ export default function ResumeCritiquePage() {
       getUserProfile(currentUser.uid).then(profile => {
         if (profile?.profilePhotoUrl) {
           setUserProfilePhoto(profile.profilePhotoUrl);
+        }
+        if (profile?.selectedAvatar) {
+          setSelectedAvatar(profile.selectedAvatar);
         }
       }).catch(console.error);
     }
@@ -354,11 +387,8 @@ export default function ResumeCritiquePage() {
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-9 w-9 rounded-full hover:bg-[#F5F1E8]/10">
-                <Avatar className="h-9 w-9">
-                  <AvatarImage src={userProfilePhoto || currentUser?.photoURL || undefined} alt={userDisplayName} />
-                  <AvatarFallback className="bg-gradient-to-br from-[#3a5f24] to-[#253f12] text-white">{userInitials}</AvatarFallback>
-                </Avatar>
+              <Button variant="ghost" className="relative h-9 w-9 rounded-lg hover:bg-[#F5F1E8]/10 p-0 overflow-hidden flex items-center justify-center">
+                <SpriteAvatar spriteId={selectedAvatar} size={36} />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56 bg-[#221410] border-[#8B6F47]/30" align="end" forceMount>
@@ -369,8 +399,12 @@ export default function ResumeCritiquePage() {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator className="bg-[#8B6F47]/30" />
-              <DropdownMenuItem className="text-[#F5F1E8] focus:bg-[#3a5f24]/20 focus:text-[#F5F1E8]">Profile Settings</DropdownMenuItem>
-              <DropdownMenuItem className="text-[#F5F1E8] focus:bg-[#3a5f24]/20 focus:text-[#F5F1E8]">Billing</DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => navigate('/profile')}
+                className="text-[#F5F1E8] focus:bg-[#3a5f24]/20 focus:text-[#F5F1E8]"
+              >
+                Profile Settings
+              </DropdownMenuItem>
               <DropdownMenuSeparator className="bg-[#8B6F47]/30" />
               <DropdownMenuItem onClick={handleLogout} className="text-[#F5F1E8] focus:bg-[#3a5f24]/20 focus:text-[#F5F1E8]">
                 <LogOut className="mr-2 h-4 w-4" />

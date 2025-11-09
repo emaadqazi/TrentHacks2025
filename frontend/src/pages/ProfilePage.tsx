@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Blocks, LogOut, Upload, Save, User, Mail, Phone, MapPin, Briefcase, Loader2 } from 'lucide-react';
+import { Blocks, LogOut, Save, User, Mail, Phone, MapPin, Briefcase, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,9 +14,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/contexts/AuthContext';
-import { getUserProfile, updateUserProfile, uploadResumePDF } from '@/lib/userProfile';
+import { getUserProfile, updateUserProfile } from '@/lib/userProfile';
 import toast from 'react-hot-toast';
-import { useDropzone } from 'react-dropzone';
 
 // Sprite options - pixel art characters
 const SPRITE_OPTIONS = [
@@ -55,8 +54,6 @@ interface UserProfile {
   location?: string;
   jobTitle?: string;
   selectedAvatar: string;
-  resumePDFUrl?: string;
-  resumeFileName?: string;
 }
 
 export default function ProfilePage() {
@@ -73,7 +70,6 @@ export default function ProfilePage() {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [uploadingResume, setUploadingResume] = useState(false);
 
   const userDisplayName = currentUser?.displayName || currentUser?.email?.split('@')[0] || 'User';
   const userEmail = currentUser?.email || '';
@@ -98,8 +94,6 @@ export default function ProfilePage() {
           location: userProfile.location || '',
           jobTitle: userProfile.jobTitle || '',
           selectedAvatar: userProfile.selectedAvatar || 'sprite1',
-          resumePDFUrl: userProfile.resumePDFUrl,
-          resumeFileName: userProfile.resumeFileName,
         });
       } else {
         // Initialize with current user data
@@ -151,113 +145,6 @@ export default function ProfilePage() {
       setSaving(false);
     }
   };
-
-  const handleResumeUpload = async (file: File) => {
-    if (!currentUser) {
-      toast.error('You must be logged in to upload a resume');
-      return;
-    }
-
-    if (!file) {
-      toast.error('No file selected');
-      return;
-    }
-
-    if (file.type !== 'application/pdf') {
-      toast.error('Please upload a PDF file');
-      return;
-    }
-
-    // Check file size (max 10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error('File size must be less than 10MB');
-      return;
-    }
-
-    setUploadingResume(true);
-    
-    try {
-      console.log('Starting resume upload...');
-      console.log('User ID:', currentUser.uid);
-      console.log('File:', { name: file.name, size: file.size, type: file.type });
-      
-      const resumeUrl = await uploadResumePDF(currentUser.uid, file);
-      console.log('Resume uploaded successfully, URL:', resumeUrl);
-      
-      await updateUserProfile(currentUser.uid, {
-        resumePDFUrl: resumeUrl,
-        resumeFileName: file.name,
-      });
-      
-      console.log('Profile updated with resume URL');
-      
-      setProfile(prev => ({
-        ...prev,
-        resumePDFUrl: resumeUrl,
-        resumeFileName: file.name,
-      }));
-      
-      toast.success('Resume uploaded successfully!', {
-        duration: 3000,
-      });
-      
-      // Show prompt to navigate to Resume Critique or Questions
-      setTimeout(() => {
-        const shouldNavigate = window.confirm('Resume uploaded! Would you like to:\n\n- Click OK to go to Resume Critique\n- Click Cancel to go to Questions');
-        if (shouldNavigate) {
-          navigate('/critique');
-        } else {
-          navigate('/questions');
-        }
-      }, 500);
-    } catch (error: any) {
-      console.error('Error uploading resume:', error);
-      console.error('Error details:', {
-        code: error?.code,
-        message: error?.message,
-        stack: error?.stack,
-      });
-      
-      let errorMessage = 'Failed to upload resume';
-      if (error?.message) {
-        errorMessage = error.message;
-      } else if (error?.code) {
-        errorMessage = `Upload failed: ${error.code}`;
-      }
-      
-      toast.error(errorMessage);
-    } finally {
-      setUploadingResume(false);
-    }
-  };
-
-  const onResumeDrop = (acceptedFiles: File[]) => {
-    if (acceptedFiles && acceptedFiles.length > 0) {
-      const file = acceptedFiles[0];
-      console.log('File dropped:', file.name, file.type, file.size);
-      handleResumeUpload(file);
-    }
-  };
-
-  const { getRootProps: getResumeRootProps, getInputProps: getResumeInputProps, isDragActive: isResumeDragActive } = useDropzone({
-    onDrop: onResumeDrop,
-    accept: {
-      'application/pdf': ['.pdf'],
-    },
-    maxFiles: 1,
-    noClick: false,
-    onDropRejected: (rejectedFiles) => {
-      console.error('File rejected:', rejectedFiles);
-      if (rejectedFiles && rejectedFiles.length > 0) {
-        const rejection = rejectedFiles[0];
-        if (rejection.errors && rejection.errors.length > 0) {
-          toast.error(`File rejected: ${rejection.errors[0].message}`);
-        } else {
-          toast.error('File rejected. Please upload a PDF file.');
-        }
-      }
-    },
-  });
 
   const handleLogout = async () => {
     try {
@@ -461,34 +348,6 @@ export default function ProfilePage() {
                       className="bg-[#1a0f08] border-[#8B6F47]/50 text-[#F5F1E8] placeholder:text-[#C9B896] focus:ring-[#527853]"
                       placeholder="e.g., Software Engineer"
                     />
-                  </div>
-                </div>
-              </div>
-
-              {/* Resume PDF Upload */}
-              <div>
-                <h3 className="text-xl font-semibold text-[#F5F1E8] mb-4">Resume PDF</h3>
-                <div {...getResumeRootProps()} className="border-2 border-dashed border-[#8B6F47]/30 rounded-lg p-6 bg-[#1a0f08]/60 cursor-pointer hover:border-[#527853] transition-colors">
-                  <input {...getResumeInputProps()} className="hidden" disabled={uploadingResume} />
-                  <div className="flex flex-col items-center gap-4">
-                    <Upload className={`h-12 w-12 ${uploadingResume ? 'text-[#8B6F47]' : 'text-[#527853]'}`} />
-                    <div className="text-center">
-                      <p className="text-[#F5F1E8] font-medium mb-1">
-                        {profile.resumeFileName ? profile.resumeFileName : isResumeDragActive ? 'Drop your PDF here' : 'Upload your resume PDF'}
-                      </p>
-                      <p className="text-sm text-[#C9B896]">
-                        {profile.resumePDFUrl ? 'Click to replace or drag & drop' : 'Click to upload or drag and drop'}
-                      </p>
-                      {profile.resumePDFUrl && (
-                        <p className="text-xs text-green-400 mt-2">✓ Resume saved - will be used automatically</p>
-                      )}
-                    </div>
-                    {uploadingResume && (
-                      <div className="flex items-center gap-2 text-[#C9B896]">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        <span>Uploading to Firebase...</span>
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>

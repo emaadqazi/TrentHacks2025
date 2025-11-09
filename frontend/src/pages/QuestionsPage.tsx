@@ -26,6 +26,36 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getUserProfile, getUserResumePDF } from '@/lib/userProfile';
 import NewAndImproved from '/NewAndImproved.jpg';
 
+// Sprite options - pixel art characters
+const SPRITE_OPTIONS = [
+  { id: 'sprite1', name: 'Sprite 1', image: '/sprite1.png' },
+  { id: 'sprite2', name: 'Sprite 2', image: '/sprite2.png' },
+  { id: 'sprite3', name: 'Sprite 3', image: '/sprite3.png' },
+];
+
+// Component to render sprite avatar
+const SpriteAvatar = ({ spriteId, size = 64 }: { spriteId: string; size?: number }) => {
+  const sprite = SPRITE_OPTIONS.find(s => s.id === spriteId) || SPRITE_OPTIONS[0];
+  
+  return (
+    <div 
+      className="rounded-lg overflow-hidden bg-[#527853]/20 flex items-center justify-center" 
+      style={{ width: size, height: size }}
+    >
+      <img 
+        src={sprite.image} 
+        alt={sprite.name}
+        className="w-full h-full object-contain"
+        onError={(e) => {
+          // Fallback if image fails to load
+          const target = e.target as HTMLImageElement;
+          target.style.display = 'none';
+        }}
+      />
+    </div>
+  );
+};
+
 interface QuestionData {
   jobTitle: string;
   location: string;
@@ -68,6 +98,7 @@ export default function QuestionsPage() {
   const [evaluation, setEvaluation] = useState<AnswerEvaluation | null>(null);
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [selectedAvatar, setSelectedAvatar] = useState<string>('sprite1');
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const questionsContainerRef = useRef<HTMLDivElement>(null);
@@ -95,6 +126,9 @@ export default function QuestionsPage() {
     try {
       const profile = await getUserProfile(currentUser.uid);
       setUserProfile(profile);
+      if (profile?.selectedAvatar) {
+        setSelectedAvatar(profile.selectedAvatar);
+      }
       
       const resumeUrl = await getUserResumePDF(currentUser.uid);
       if (resumeUrl) {
@@ -395,21 +429,8 @@ export default function QuestionsPage() {
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-9 w-9 rounded-full hover:bg-[#F5F1E8]/10">
-                {currentUser?.photoURL || userProfile?.profilePhotoUrl ? (
-                  <Avatar className="h-9 w-9">
-                    <AvatarImage src={userProfile?.profilePhotoUrl || currentUser?.photoURL || undefined} alt={userDisplayName} />
-                    <AvatarFallback className="bg-gradient-to-br from-[#3a5f24] to-[#253f12] text-white">
-                      {userInitials}
-                    </AvatarFallback>
-                  </Avatar>
-                ) : (
-                  <Avatar className="h-9 w-9">
-                    <AvatarFallback className="bg-gradient-to-br from-[#3a5f24] to-[#253f12] text-white">
-                      {userInitials}
-                    </AvatarFallback>
-                  </Avatar>
-                )}
+              <Button variant="ghost" className="relative h-9 w-9 rounded-lg hover:bg-[#F5F1E8]/10 p-0 overflow-hidden flex items-center justify-center">
+                <SpriteAvatar spriteId={selectedAvatar} size={36} />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56 bg-[#221410] border-[#8B6F47]/30" align="end" forceMount>
@@ -426,7 +447,6 @@ export default function QuestionsPage() {
               >
                 Profile Settings
               </DropdownMenuItem>
-              <DropdownMenuItem className="text-[#F5F1E8] focus:bg-[#3a5f24]/20 focus:text-[#F5F1E8]">Billing</DropdownMenuItem>
               <DropdownMenuSeparator className="bg-[#8B6F47]/30" />
               <DropdownMenuItem onClick={handleLogout} className="text-[#F5F1E8] focus:bg-[#3a5f24]/20 focus:text-[#F5F1E8]">
                 <LogOut className="mr-2 h-4 w-4" />

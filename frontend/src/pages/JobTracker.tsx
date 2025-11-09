@@ -32,44 +32,32 @@ import toast from "react-hot-toast"
 import type { JobApplication, ApplicationStatus, Position, JobApplicationInput } from "@/types/jobApplication"
 import { getUserJobApplications, createJobApplication, updateJobApplication, deleteJobApplication } from "@/lib/firestore"
 
-// Avatar options matching ProfilePage
-const AVATAR_OPTIONS = [
-  { id: 'brown1', name: 'Light Brown', color: '#8B6F47' },
-  { id: 'brown2', name: 'Medium Brown', color: '#6B4E3D' },
-  { id: 'brown3', name: 'Dark Brown', color: '#5C4033' },
-  { id: 'brown4', name: 'Coffee', color: '#6F4E37' },
-  { id: 'brown5', name: 'Caramel', color: '#A67C52' },
-  { id: 'brown6', name: 'Chocolate', color: '#4A3428' },
-  { id: 'brown7', name: 'Espresso', color: '#3E2723' },
-  { id: 'brown8', name: 'Mahogany', color: '#2E1B14' },
+// Sprite options - pixel art characters
+const SPRITE_OPTIONS = [
+  { id: 'sprite1', name: 'Sprite 1', image: '/sprite1.png' },
+  { id: 'sprite2', name: 'Sprite 2', image: '/sprite2.png' },
+  { id: 'sprite3', name: 'Sprite 3', image: '/sprite3.png' },
 ];
 
-// Component to render furry monster avatar
-const MonsterAvatar = ({ color, size = 64 }: { color: string; size?: number }) => {
+// Component to render sprite avatar
+const SpriteAvatar = ({ spriteId, size = 64 }: { spriteId: string; size?: number }) => {
+  const sprite = SPRITE_OPTIONS.find(s => s.id === spriteId) || SPRITE_OPTIONS[0];
+  
   return (
-    <div className="rounded-full overflow-hidden flex-shrink-0" style={{ width: size, height: size, minWidth: size, minHeight: size }}>
-      <svg width={size} height={size} viewBox="0 0 64 64" style={{ display: 'block', width: '100%', height: '100%' }}>
-        {/* Background circle - fills entire viewBox */}
-        <circle cx="32" cy="32" r="32" fill={color} />
-        {/* Texture pattern */}
-        <defs>
-          <pattern id={`texture-${color.replace('#', '')}`} x="0" y="0" width="8" height="8" patternUnits="userSpaceOnUse">
-            <circle cx="4" cy="4" r="0.5" fill="rgba(255,255,255,0.1)" />
-          </pattern>
-        </defs>
-        <circle cx="32" cy="32" r="32" fill={`url(#texture-${color.replace('#', '')})`} />
-        
-        {/* Left Eye */}
-        <circle cx="24" cy="26" r="5" fill="#000" />
-        <circle cx="25" cy="25" r="1.5" fill="#FFF" />
-        
-        {/* Right Eye */}
-        <circle cx="40" cy="26" r="5" fill="#000" />
-        <circle cx="41" cy="25" r="1.5" fill="#FFF" />
-        
-        {/* Smile */}
-        <path d="M 24 38 Q 32 42 40 38" stroke="#000" strokeWidth="2" fill="none" strokeLinecap="round" />
-      </svg>
+    <div 
+      className="rounded-lg overflow-hidden bg-[#527853]/20 flex items-center justify-center" 
+      style={{ width: size, height: size }}
+    >
+      <img 
+        src={sprite.image} 
+        alt={sprite.name}
+        className="w-full h-full object-contain"
+        onError={(e) => {
+          // Fallback if image fails to load
+          const target = e.target as HTMLImageElement;
+          target.style.display = 'none';
+        }}
+      />
     </div>
   );
 };
@@ -322,7 +310,7 @@ export default function JobTrackerPage() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-9 w-9 rounded-full hover:bg-[#F5F1E8]/10 p-0 overflow-hidden flex items-center justify-center">
-                <MonsterAvatar color={AVATAR_OPTIONS.find(a => a.id === userProfile?.selectedAvatar)?.color || AVATAR_OPTIONS[0].color} size={36} />
+                <SpriteAvatar spriteId={userProfile?.selectedAvatar || 'sprite1'} size={36} />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56 bg-[#221410] border-[#8B6F47]/30" align="end" forceMount>
@@ -339,7 +327,6 @@ export default function JobTrackerPage() {
               >
                 Profile Settings
               </DropdownMenuItem>
-              <DropdownMenuItem className="text-[#F5F1E8] focus:bg-[#3a5f24]/20 focus:text-[#F5F1E8]">Billing</DropdownMenuItem>
               <DropdownMenuSeparator className="bg-[#8B6F47]/30" />
               <DropdownMenuItem onClick={handleLogout} className="text-[#F5F1E8] focus:bg-[#3a5f24]/20 focus:text-[#F5F1E8]">
                 <LogOut className="mr-2 h-4 w-4" />
