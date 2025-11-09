@@ -1,9 +1,8 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDropzone } from 'react-dropzone';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -18,19 +17,11 @@ import {
   Upload,
   FileText,
   Loader2,
-  AlertCircle,
-  X,
   CheckCircle2,
   XCircle,
   TrendingUp,
-  Sparkles,
-  BarChart3,
-  ArrowLeft,
-  Star,
-  AlertTriangle,
   LogOut,
-  Eye,
-  Download,
+  AlertTriangle,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -69,7 +60,11 @@ export default function ResumeCritiquePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [critique, setCritique] = useState<CritiqueResult | null>(null);
+  const [displayedText, setDisplayedText] = useState('');
+  const [showUpload, setShowUpload] = useState(true);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const text = 'UPLOAD YOUR RESUME';
   const userDisplayName = currentUser?.displayName || currentUser?.email?.split('@')[0] || 'User';
   const userEmail = currentUser?.email || '';
   const userInitials = userDisplayName
@@ -79,12 +74,32 @@ export default function ResumeCritiquePage() {
     .toUpperCase()
     .slice(0, 2) || 'U';
 
+  // Typewriter effect
+  useEffect(() => {
+    if (!showUpload) return;
+    
+    setDisplayedText('');
+    let currentIndex = 0;
+    
+    const typeInterval = setInterval(() => {
+      if (currentIndex < text.length) {
+        setDisplayedText(text.slice(0, currentIndex + 1));
+        currentIndex++;
+      } else {
+        clearInterval(typeInterval);
+      }
+    }, 100);
+
+    return () => clearInterval(typeInterval);
+  }, [showUpload]);
+
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const pdfFile = acceptedFiles[0];
     if (pdfFile && pdfFile.type === 'application/pdf') {
       setFile(pdfFile);
       setError(null);
       setCritique(null);
+      setShowUpload(false);
       await analyzeResume(pdfFile);
     } else {
       setError('Please upload a valid PDF file');
@@ -92,13 +107,33 @@ export default function ResumeCritiquePage() {
     }
   }, []);
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+  const { getRootProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
       'application/pdf': ['.pdf'],
     },
     maxFiles: 1,
+    noClick: true,
+    noKeyboard: true,
   });
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (selectedFile && selectedFile.type === 'application/pdf') {
+      setFile(selectedFile);
+      setError(null);
+      setCritique(null);
+      setShowUpload(false);
+      analyzeResume(selectedFile);
+    } else {
+      setError('Please upload a valid PDF file');
+      toast.error('Please upload a valid PDF file');
+    }
+  };
 
   const analyzeResume = async (pdfFile: File) => {
     setLoading(true);
@@ -106,7 +141,6 @@ export default function ResumeCritiquePage() {
     setCritique(null);
 
     try {
-      // Send resume to OpenAI via backend API
       const formData = new FormData();
       formData.append('file', pdfFile);
 
@@ -125,7 +159,6 @@ export default function ResumeCritiquePage() {
 
       const critiqueData = await critiqueResponse.json();
       
-      // Validate the response structure
       if (!critiqueData.score || !critiqueData.suggestions) {
         throw new Error('Invalid response format from server');
       }
@@ -146,30 +179,78 @@ export default function ResumeCritiquePage() {
     setFile(null);
     setError(null);
     setCritique(null);
+    setShowUpload(true);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const getScoreColor = (score: number) => {
-    if (score >= 80) return 'text-green-600';
-    if (score >= 60) return 'text-yellow-600';
-    return 'text-red-600';
-  };
-
-  const getScoreBgColor = (score: number) => {
-    if (score >= 80) return 'bg-green-100 border-green-300';
-    if (score >= 60) return 'bg-yellow-100 border-yellow-300';
-    return 'bg-red-100 border-red-300';
+    if (score >= 80) return 'text-green-400';
+    if (score >= 60) return 'text-yellow-400';
+    return 'text-red-400';
   };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'high':
-        return 'bg-red-500 text-white';
+        return 'bg-red-500/20 text-red-400 border-red-500/30';
       case 'medium':
-        return 'bg-yellow-500 text-white';
+        return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
       case 'low':
-        return 'bg-green-500 text-white';
+        return 'bg-green-500/20 text-green-400 border-green-500/30';
       default:
-        return 'bg-gray-500 text-white';
+        return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+    }
+  };
+
+  const getPriorityBorderColor = (priority: string) => {
+    switch (priority) {
+      case 'high':
+        return 'border-l-4 border-red-500';
+      case 'medium':
+        return 'border-l-4 border-yellow-500';
+      case 'low':
+        return 'border-l-4 border-green-500';
+      default:
+        return 'border-l-4 border-gray-500';
+    }
+  };
+
+  const getCategoryColor = (category: string) => {
+    switch (category) {
+      case 'strength':
+        return {
+          bg: 'bg-[#1a0f08]/60',
+          border: 'border-[#8B6F47]/20',
+          iconBg: 'bg-green-500/20',
+          iconColor: 'text-green-400',
+          accent: 'border-l-4 border-green-500',
+        };
+      case 'weakness':
+        return {
+          bg: 'bg-[#1a0f08]/60',
+          border: 'border-[#8B6F47]/20',
+          iconBg: 'bg-red-500/20',
+          iconColor: 'text-red-400',
+          accent: 'border-l-4 border-red-500',
+        };
+      case 'improvement':
+        return {
+          bg: 'bg-[#1a0f08]/60',
+          border: 'border-[#8B6F47]/20',
+          iconBg: 'bg-blue-500/20',
+          iconColor: 'text-blue-400',
+          accent: 'border-l-4 border-blue-500',
+        };
+      default:
+        return {
+          bg: 'bg-[#1a0f08]/60',
+          border: 'border-[#8B6F47]/20',
+          iconBg: 'bg-gray-500/20',
+          iconColor: 'text-gray-400',
+          accent: 'border-l-4 border-gray-500',
+        };
     }
   };
 
@@ -201,12 +282,6 @@ export default function ResumeCritiquePage() {
               >
                 Templates
               </Link>
-              <Link
-                to="#"
-                className="text-sm font-medium text-[#C9B896] hover:text-[#F5F1E8] transition-colors"
-              >
-                Analytics
-              </Link>
             </div>
           </div>
           <DropdownMenu>
@@ -228,7 +303,6 @@ export default function ResumeCritiquePage() {
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => navigate('/dashboard')}>Dashboard</DropdownMenuItem>
               <DropdownMenuItem>Profile Settings</DropdownMenuItem>
-              <DropdownMenuItem>Billing</DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={logout}>
                 <LogOut className="mr-2 h-4 w-4" />
@@ -239,465 +313,258 @@ export default function ResumeCritiquePage() {
         </div>
       </nav>
 
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <Link to="/dashboard">
-            <Button variant="ghost" size="sm" className="mb-4 text-[#C9B896] hover:text-[#F5F1E8] hover:bg-[#3a5f24]/10">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Dashboard
-            </Button>
-          </Link>
-          <div className="flex items-center gap-3 mb-2">
-            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-[#3a5f24]/20">
-              <Sparkles className="h-6 w-6 text-[#8B6F47]" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight text-[#F5F1E8]">Resume Critique</h1>
-              <p className="text-[#C9B896]">Upload your resume for AI-powered analysis and scoring</p>
-            </div>
-          </div>
-        </div>
+      <div {...getRootProps()} className="min-h-[calc(100vh-4rem)]">
+        <div className="container mx-auto px-4 py-12">
+          <AnimatePresence mode="wait">
+            {showUpload && !file && !critique ? (
+              <motion.div
+                key="upload"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="flex flex-col items-center justify-center min-h-[60vh]"
+              >
+                {/* Typewriter Text */}
+                <h1 className="text-4xl md:text-5xl font-semibold text-[#F5F1E8] mb-12 tracking-tight text-center">
+                  {displayedText}
+                  <span className="animate-pulse">|</span>
+                </h1>
 
-        <div className="grid gap-6 lg:grid-cols-[1fr_1.5fr]">
-          {/* Left Side - Upload & Critique */}
-          <div className="space-y-6 min-w-0">
-            {/* Upload Section */}
-            <Card className="border-2 border-[#8B6F47]/30 bg-[#221410]/90 backdrop-blur-xl">
-              <CardHeader>
-                <CardTitle className="text-[#F5F1E8]">Upload Resume</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <AnimatePresence mode="wait">
-                  {!file ? (
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                    >
-                      <Card
-                        {...getRootProps()}
-                        className={`cursor-pointer border-4 border-dashed transition-all ${
-                          isDragActive
-                            ? 'border-[#3a5f24] bg-[#3a5f24]/10'
-                            : 'border-[#8B6F47]/30 hover:border-[#8B6F47]/50 bg-[#1a0f08]/50'
-                        }`}
+                {/* Upload Button */}
+                <div className="relative">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".pdf"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                  <Button
+                    onClick={handleUploadClick}
+                    size="lg"
+                    className="bg-gradient-to-r from-[#3a5f24] to-[#253f12] hover:from-[#4a7534] hover:to-[#355222] text-white px-8 py-6 text-lg font-medium rounded-lg shadow-lg transition-all duration-300 hover:scale-105"
+                  >
+                    <Upload className="mr-2 h-5 w-5" />
+                    Choose PDF File
+                  </Button>
+                </div>
+
+                {isDragActive && (
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="mt-6 text-[#C9B896] text-sm"
+                  >
+                    Drop your PDF here
+                  </motion.p>
+                )}
+              </motion.div>
+            ) : (
+              <motion.div
+                key="results"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="space-y-8"
+              >
+                {/* File Info & Loading */}
+                {file && (
+                  <div className="flex items-center justify-between p-5 bg-gradient-to-r from-[#221410] to-[#1a0f08] rounded-xl border border-[#8B6F47]/20 shadow-lg">
+                    <div className="flex items-center gap-4">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#3a5f24]/20">
+                        <FileText className="h-5 w-5 text-[#8B6F47]" />
+                      </div>
+                      <div>
+                        <p className="text-[#F5F1E8] font-semibold text-sm">{file.name}</p>
+                        <p className="text-xs text-[#C9B896] font-medium">{(file.size / 1024).toFixed(2)} KB</p>
+                      </div>
+                    </div>
+                    {loading ? (
+                      <div className="flex items-center gap-2 text-[#8B6F47]">
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                        <span className="text-sm font-medium">Analyzing...</span>
+                      </div>
+                    ) : (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={clearFile} 
+                        className="text-[#C9B896] hover:text-[#F5F1E8] hover:bg-[#3a5f24]/10 font-medium"
                       >
-                        <CardContent className="p-12">
-                          <input {...getInputProps()} />
-                          <div className="flex flex-col items-center justify-center text-center">
-                            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#3a5f24]/20">
-                              <Upload className="h-8 w-8 text-[#8B6F47]" />
-                            </div>
-                            <h3 className="mb-2 text-lg font-semibold text-[#F5F1E8]">
-                              {isDragActive ? 'Drop your resume here' : 'Upload Your Resume'}
-                            </h3>
-                            <p className="mb-4 text-sm text-[#C9B896]">
-                              Drag and drop your PDF resume, or click to browse
-                            </p>
-                            <Button variant="outline" size="sm" className="border-[#8B6F47]/50 text-[#F5F1E8] hover:bg-[#3a5f24]/20">
-                              <FileText className="mr-2 h-4 w-4" />
-                              Select PDF File
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                    >
-                      <Card className="border-2 border-[#3a5f24] bg-[#3a5f24]/10">
-                        <CardContent className="p-6">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-[#3a5f24]/20">
-                                <FileText className="h-6 w-6 text-[#8B6F47]" />
-                              </div>
-                              <div>
-                                <p className="font-semibold text-[#F5F1E8]">{file.name}</p>
-                                <p className="text-sm text-[#C9B896]">
-                                  {(file.size / 1024).toFixed(2)} KB
-                                </p>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              {loading ? (
-                                <div className="flex items-center gap-2 text-[#8B6F47]">
-                                  <Loader2 className="h-5 w-5 animate-spin" />
-                                  <span className="text-sm font-medium">Analyzing...</span>
-                                </div>
-                              ) : (
-                                <Button variant="ghost" size="sm" onClick={clearFile} className="text-[#C9B896] hover:text-[#F5F1E8]">
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              )}
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                        Upload Another
+                      </Button>
+                    )}
+                  </div>
+                )}
 
                 {/* Error Message */}
-                <AnimatePresence>
-                  {error && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="mt-4"
-                    >
-                      <Card className="border-2 border-red-600/50 bg-red-900/20">
-                        <CardContent className="p-4">
-                          <div className="flex items-start gap-3">
-                            <AlertTriangle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
-                            <div className="flex-1">
-                              <p className="text-sm font-semibold text-red-400 mb-1">Analysis Error</p>
-                              <p className="text-sm text-red-300">{error}</p>
-                              {error.includes('OpenAI') && (
-                                <p className="text-xs text-red-400/80 mt-2">
-                                  Make sure the backend server is running and has OPENAI_API_KEY in backend/.env.local
-                                </p>
-                              )}
+                {error && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-5 bg-gradient-to-r from-red-900/20 to-red-800/10 border border-red-600/30 rounded-xl shadow-lg"
+                  >
+                    <div className="flex items-start gap-4">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-red-500/20 flex-shrink-0">
+                        <AlertTriangle className="h-5 w-5 text-red-400" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-red-400 mb-2 tracking-wide">Analysis Error</p>
+                        <p className="text-sm text-red-300 font-medium leading-relaxed">{error}</p>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Results Grid */}
+                {critique && (
+                  <div className="max-w-7xl mx-auto">
+                    <div className="grid lg:grid-cols-[1fr_1.5fr] gap-8">
+                      {/* Left: Critique Results */}
+                      <div className="space-y-6">
+                      {/* Overall Score */}
+                      <Card className="border border-[#8B6F47]/20 bg-gradient-to-br from-[#221410] to-[#1a0f08] shadow-xl backdrop-blur-xl">
+                        <CardContent className="p-8">
+                          <div className="text-center mb-8">
+                            <div className={`mx-auto mb-5 flex h-28 w-28 items-center justify-center rounded-full border-2 ${getScoreColor(critique.score.overall)} border-current bg-gradient-to-br from-[#1a0f08] to-[#221410] shadow-lg`}>
+                              <span className={`text-4xl font-semibold ${getScoreColor(critique.score.overall)}`}>
+                                {critique.score.overall}
+                              </span>
                             </div>
+                            <h3 className="text-2xl font-semibold text-[#F5F1E8] mb-2 tracking-tight">Overall Score</h3>
+                            <p className="text-sm text-[#C9B896] font-medium">
+                              {critique.score.overall >= 80 ? 'Excellent' : critique.score.overall >= 60 ? 'Good' : 'Needs Improvement'}
+                            </p>
+                          </div>
+
+                          {/* Score Breakdown */}
+                          <div className="space-y-4">
+                            {[
+                              { label: 'Clarity', score: critique.score.clarity },
+                              { label: 'Impact', score: critique.score.impact },
+                              { label: 'ATS Score', score: critique.score.atsScore },
+                              { label: 'Formatting', score: critique.score.formatting },
+                              { label: 'Content', score: critique.score.content },
+                            ].map((item) => (
+                              <div key={item.label} className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-sm font-medium text-[#C9B896] tracking-wide uppercase text-xs">{item.label}</span>
+                                  <span className={`text-base font-semibold ${getScoreColor(item.score)}`}>
+                                    {item.score}
+                                  </span>
+                                </div>
+                                <div className="h-2.5 w-full rounded-full bg-[#1a0f08] overflow-hidden shadow-inner">
+                                  <motion.div
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${item.score}%` }}
+                                    transition={{ duration: 0.8, ease: "easeOut" }}
+                                    className={`h-full rounded-full ${
+                                      item.score >= 80 ? 'bg-gradient-to-r from-green-500 to-green-400' 
+                                      : item.score >= 60 
+                                      ? 'bg-gradient-to-r from-yellow-500 to-yellow-400' 
+                                      : 'bg-gradient-to-r from-red-500 to-red-400'
+                                    } shadow-sm`}
+                                  />
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         </CardContent>
                       </Card>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </CardContent>
-            </Card>
 
-            {/* Critique Results */}
-            {critique && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="space-y-6"
-              >
-                {/* Summary */}
-                <Card className="border-2 border-[#8B6F47]/30 bg-[#221410]/90 backdrop-blur-xl">
-                  <CardHeader>
-                    <CardTitle className="text-[#F5F1E8]">Analysis Summary</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-[#C9B896]">{critique.summary}</p>
-                  </CardContent>
-                </Card>
+                      {/* Summary */}
+                      <Card className="border border-[#8B6F47]/20 bg-gradient-to-br from-[#221410] to-[#1a0f08] shadow-xl backdrop-blur-xl">
+                        <CardContent className="p-8">
+                          <h3 className="text-xl font-semibold text-[#F5F1E8] mb-4 tracking-tight">Executive Summary</h3>
+                          <p className="text-sm text-[#C9B896] leading-relaxed font-medium">{critique.summary}</p>
+                        </CardContent>
+                      </Card>
 
-                {/* Suggestions */}
-                <Card className="border-2 border-[#8B6F47]/30 bg-[#221410]/90 backdrop-blur-xl">
-                  <CardHeader>
-                    <CardTitle className="text-[#F5F1E8]">Suggestions & Recommendations</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {critique.suggestions.map((suggestion) => (
-                      <motion.div
-                        key={suggestion.id}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        className="flex items-start gap-4 p-4 rounded-lg border border-[#8B6F47]/20 bg-[#1a0f08]/50"
-                      >
-                        <div className="mt-1">
-                          {suggestion.category === 'strength' && (
-                            <CheckCircle2 className="h-5 w-5 text-green-500" />
-                          )}
-                          {suggestion.category === 'weakness' && (
-                            <XCircle className="h-5 w-5 text-red-500" />
-                          )}
-                          {suggestion.category === 'improvement' && (
-                            <TrendingUp className="h-5 w-5 text-blue-400" />
-                          )}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <h4 className="font-semibold text-[#F5F1E8]">{suggestion.title}</h4>
-                            <Badge className={getPriorityColor(suggestion.priority)}>
-                              {suggestion.priority}
-                            </Badge>
+                      {/* Suggestions */}
+                      <Card className="border border-[#8B6F47]/20 bg-gradient-to-br from-[#221410] to-[#1a0f08] shadow-xl backdrop-blur-xl">
+                        <CardContent className="p-8">
+                          <h3 className="text-xl font-semibold text-[#F5F1E8] mb-6 tracking-tight">Recommendations</h3>
+                          <div className="space-y-4">
+                            {critique.suggestions
+                              .sort((a, b) => {
+                                const priorityOrder = { high: 0, medium: 1, low: 2 };
+                                return priorityOrder[a.priority] - priorityOrder[b.priority];
+                              })
+                              .map((suggestion, index) => {
+                                const categoryColors = getCategoryColor(suggestion.category);
+                                const priorityNumber = index + 1;
+                                const priorityColors = getPriorityNumberColor(suggestion.priority);
+                                return (
+                                  <motion.div
+                                    key={suggestion.id}
+                                    initial={{ opacity: 0, x: -20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: index * 0.1 }}
+                                    className={`p-5 rounded-xl ${categoryColors.accent} ${categoryColors.bg} border-t border-r border-b ${categoryColors.border} hover:shadow-lg hover:bg-[#1a0f08]/80 transition-all duration-200`}
+                                  >
+                                    <div className="flex items-start gap-4">
+                                      {/* Priority Number */}
+                                      <div className={`flex-shrink-0 flex h-8 w-8 items-center justify-center rounded-full bg-[#221410] border-2 ${priorityColors.border} font-semibold text-sm ${priorityColors.text}`}>
+                                        {priorityNumber}
+                                      </div>
+                                      
+                                      {/* Category Icon */}
+                                      <div className="flex-shrink-0 mt-0.5">
+                                        {suggestion.category === 'strength' && (
+                                          <div className={`flex h-10 w-10 items-center justify-center rounded-full ${categoryColors.iconBg}`}>
+                                            <CheckCircle2 className={`h-5 w-5 ${categoryColors.iconColor}`} />
+                                          </div>
+                                        )}
+                                        {suggestion.category === 'weakness' && (
+                                          <div className={`flex h-10 w-10 items-center justify-center rounded-full ${categoryColors.iconBg}`}>
+                                            <XCircle className={`h-5 w-5 ${categoryColors.iconColor}`} />
+                                          </div>
+                                        )}
+                                        {suggestion.category === 'improvement' && (
+                                          <div className={`flex h-10 w-10 items-center justify-center rounded-full ${categoryColors.iconBg}`}>
+                                            <TrendingUp className={`h-5 w-5 ${categoryColors.iconColor}`} />
+                                          </div>
+                                        )}
+                                      </div>
+                                      
+                                      {/* Content */}
+                                      <div className="flex-1 min-w-0">
+                                        <h4 className="text-base font-semibold text-[#F5F1E8] mb-2">{suggestion.title}</h4>
+                                        <p className="text-sm text-[#C9B896] leading-relaxed font-medium">{suggestion.description}</p>
+                                      </div>
+                                    </div>
+                                  </motion.div>
+                                );
+                              })}
                           </div>
-                          <p className="text-sm text-[#C9B896]">{suggestion.description}</p>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </CardContent>
-                </Card>
+                        </CardContent>
+                      </Card>
+                    </div>
 
-                {/* Strengths & Weaknesses */}
-                <div className="grid gap-4 md:grid-cols-2">
-                  <Card className="border-2 border-green-600/30 bg-green-900/20">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2 text-green-400">
-                        <CheckCircle2 className="h-5 w-5" />
-                        Strengths
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <ul className="space-y-2">
-                        {critique.strengths.map((strength, index) => (
-                          <li key={index} className="flex items-start gap-2 text-sm text-green-300">
-                            <Star className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                            <span>{strength}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="border-2 border-red-600/30 bg-red-900/20">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2 text-red-400">
-                        <AlertCircle className="h-5 w-5" />
-                        Areas for Improvement
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <ul className="space-y-2">
-                        {critique.weaknesses.map((weakness, index) => (
-                          <li key={index} className="flex items-start gap-2 text-sm text-red-300">
-                            <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                            <span>{weakness}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </CardContent>
-                  </Card>
+                    {/* Right: PDF Viewer */}
+                    {file && (
+                      <div className="h-[calc(100vh-200px)] min-h-[600px]">
+                        <PDFViewer 
+                          file={file} 
+                          onDownload={() => {
+                            const url = URL.createObjectURL(file);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = file.name;
+                            a.click();
+                            URL.revokeObjectURL(url);
+                          }}
+                          className="h-full"
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
+              )}
               </motion.div>
             )}
-          </div>
-
-          {/* Right Side - PDF Viewer & Score */}
-          <div className="space-y-6 min-w-0">
-            {/* PDF Viewer */}
-            {file && (
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="h-[calc(100vh-250px)] min-h-[600px]"
-              >
-                <PDFViewer 
-                  file={file} 
-                  onDownload={() => {
-                    const url = URL.createObjectURL(file);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = file.name;
-                    a.click();
-                    URL.revokeObjectURL(url);
-                  }}
-                  className="h-full"
-                />
-              </motion.div>
-            )}
-
-            {/* Score Sidebar */}
-            {critique && (
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-              >
-                <Card className="border-2 border-[#8B6F47]/30 bg-[#221410]/90 backdrop-blur-xl sticky top-4">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-[#F5F1E8]">
-                      <BarChart3 className="h-5 w-5" />
-                      Resume Score
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                  {/* Overall Score */}
-                  <div className="text-center">
-                    <div
-                      className={`mx-auto mb-4 flex h-32 w-32 items-center justify-center rounded-full border-4 ${getScoreBgColor(
-                        critique.score.overall
-                      )}`}
-                    >
-                      <span className={`text-4xl font-bold ${getScoreColor(critique.score.overall)}`}>
-                        {critique.score.overall}
-                      </span>
-                    </div>
-                    <h3 className="text-lg font-semibold text-[#F5F1E8]">Overall Score</h3>
-                    <p className="text-sm text-[#C9B896]">
-                      {critique.score.overall >= 80
-                        ? 'Excellent'
-                        : critique.score.overall >= 60
-                        ? 'Good'
-                        : 'Needs Improvement'}
-                    </p>
-                  </div>
-
-                  {/* Score Breakdown */}
-                  <div className="space-y-4">
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-[#F5F1E8]">Clarity</span>
-                        <span className={`text-sm font-bold ${getScoreColor(critique.score.clarity)}`}>
-                          {critique.score.clarity}
-                        </span>
-                      </div>
-                      <div className="h-2 w-full rounded-full bg-[#1a0f08]">
-                        <div
-                          className={`h-2 rounded-full ${
-                            critique.score.clarity >= 80
-                              ? 'bg-green-500'
-                              : critique.score.clarity >= 60
-                              ? 'bg-yellow-500'
-                              : 'bg-red-500'
-                          }`}
-                          style={{ width: `${critique.score.clarity}%` }}
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-[#F5F1E8]">Impact</span>
-                        <span className={`text-sm font-bold ${getScoreColor(critique.score.impact)}`}>
-                          {critique.score.impact}
-                        </span>
-                      </div>
-                      <div className="h-2 w-full rounded-full bg-[#1a0f08]">
-                        <div
-                          className={`h-2 rounded-full ${
-                            critique.score.impact >= 80
-                              ? 'bg-green-500'
-                              : critique.score.impact >= 60
-                              ? 'bg-yellow-500'
-                              : 'bg-red-500'
-                          }`}
-                          style={{ width: `${critique.score.impact}%` }}
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-[#F5F1E8]">ATS Score</span>
-                        <span className={`text-sm font-bold ${getScoreColor(critique.score.atsScore)}`}>
-                          {critique.score.atsScore}
-                        </span>
-                      </div>
-                      <div className="h-2 w-full rounded-full bg-[#1a0f08]">
-                        <div
-                          className={`h-2 rounded-full ${
-                            critique.score.atsScore >= 80
-                              ? 'bg-green-500'
-                              : critique.score.atsScore >= 60
-                              ? 'bg-yellow-500'
-                              : 'bg-red-500'
-                          }`}
-                          style={{ width: `${critique.score.atsScore}%` }}
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-[#F5F1E8]">Formatting</span>
-                        <span className={`text-sm font-bold ${getScoreColor(critique.score.formatting)}`}>
-                          {critique.score.formatting}
-                        </span>
-                      </div>
-                      <div className="h-2 w-full rounded-full bg-[#1a0f08]">
-                        <div
-                          className={`h-2 rounded-full ${
-                            critique.score.formatting >= 80
-                              ? 'bg-green-500'
-                              : critique.score.formatting >= 60
-                              ? 'bg-yellow-500'
-                              : 'bg-red-500'
-                          }`}
-                          style={{ width: `${critique.score.formatting}%` }}
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-[#F5F1E8]">Content</span>
-                        <span className={`text-sm font-bold ${getScoreColor(critique.score.content)}`}>
-                          {critique.score.content}
-                        </span>
-                      </div>
-                      <div className="h-2 w-full rounded-full bg-[#1a0f08]">
-                        <div
-                          className={`h-2 rounded-full ${
-                            critique.score.content >= 80
-                              ? 'bg-green-500'
-                              : critique.score.content >= 60
-                              ? 'bg-yellow-500'
-                              : 'bg-red-500'
-                          }`}
-                          style={{ width: `${critique.score.content}%` }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                    {/* Action Button */}
-                    <Button className="w-full bg-[#3a5f24] hover:bg-[#3a5f24]/80 text-white" onClick={() => navigate('/editor')}>
-                      <Sparkles className="mr-2 h-4 w-4" />
-                      Improve Resume
-                    </Button>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )}
-
-            {/* Download Section - Shown when PDF is uploaded but no critique yet */}
-            {file && !critique && !loading && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-              >
-                <Card className="border-2 border-[#8B6F47]/30 bg-[#221410]/90 backdrop-blur-xl">
-                  <CardHeader>
-                    <CardTitle className="text-[#F5F1E8]">Download My Resume</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <p className="text-sm text-[#C9B896]">
-                      Get a detailed view of your experience, skills, and qualifications in PDF format.
-                    </p>
-                    <div className="flex flex-col gap-2">
-                      <Button
-                        className="w-full bg-[#3a5f24] hover:bg-[#3a5f24]/80 text-white"
-                        onClick={() => {
-                          const url = URL.createObjectURL(file);
-                          window.open(url, '_blank');
-                        }}
-                      >
-                        <Eye className="mr-2 h-4 w-4" />
-                        VIEW RESUME
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="w-full border-[#8B6F47]/50 text-[#F5F1E8] hover:bg-[#3a5f24]/20"
-                        onClick={() => {
-                          const url = URL.createObjectURL(file);
-                          const a = document.createElement('a');
-                          a.href = url;
-                          a.download = file.name;
-                          a.click();
-                          URL.revokeObjectURL(url);
-                        }}
-                      >
-                        <Download className="mr-2 h-4 w-4" />
-                        DOWNLOAD PDF
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )}
-          </div>
+          </AnimatePresence>
         </div>
       </div>
     </div>
   );
 }
-
