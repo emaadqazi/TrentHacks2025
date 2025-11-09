@@ -13,6 +13,7 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebase';
 import type { Resume } from '@/types/resume';
+import type { JobApplication, JobApplicationInput } from '@/types/jobApplication';
 
 export interface UserResume {
   id: string;
@@ -146,5 +147,109 @@ export async function getUserResumes(userId: string): Promise<UserResume[]> {
   });
 
   return resumes;
+}
+
+/**
+ * Job Application CRUD Functions
+ */
+
+/**
+ * Create a new job application in Firestore
+ */
+export async function createJobApplication(
+  userId: string,
+  applicationData: JobApplicationInput
+): Promise<string> {
+  const appId = `${userId}_${Date.now()}`;
+  const appRef = doc(db, 'jobApplications', appId);
+
+  await setDoc(appRef, {
+    id: appId,
+    userId,
+    ...applicationData,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+
+  return appId;
+}
+
+/**
+ * Get a job application by ID
+ */
+export async function getJobApplication(appId: string): Promise<JobApplication | null> {
+  const appRef = doc(db, 'jobApplications', appId);
+  const appSnap = await getDoc(appRef);
+
+  if (appSnap.exists()) {
+    return appSnap.data() as JobApplication;
+  }
+  return null;
+}
+
+/**
+ * Update a job application
+ */
+export async function updateJobApplication(
+  appId: string,
+  data: Partial<JobApplication>
+): Promise<void> {
+  const appRef = doc(db, 'jobApplications', appId);
+  
+  // Filter out undefined values
+  const filteredData = Object.fromEntries(
+    Object.entries(data).filter(([_, value]) => value !== undefined)
+  );
+
+  await updateDoc(appRef, {
+    ...filteredData,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+/**
+ * Delete a job application
+ */
+export async function deleteJobApplication(appId: string): Promise<void> {
+  const appRef = doc(db, 'jobApplications', appId);
+  await deleteDoc(appRef);
+}
+
+/**
+ * Get all job applications for a user
+ */
+export async function getUserJobApplications(userId: string): Promise<JobApplication[]> {
+  const appsRef = collection(db, 'jobApplications');
+  const q = query(
+    appsRef,
+    where('userId', '==', userId)
+  );
+
+  const querySnapshot = await getDocs(q);
+  const applications: JobApplication[] = [];
+
+  querySnapshot.forEach((doc) => {
+    applications.push(doc.data() as JobApplication);
+  });
+
+  // Sort by updatedAt in memory (most recent first)
+  applications.sort((a, b) => {
+    const getTimestamp = (date: Timestamp | string | Date | undefined): number => {
+      if (!date) return 0;
+      if (date instanceof Date) return date.getTime();
+      if (typeof date === 'string') return new Date(date).getTime();
+      if (date instanceof Timestamp) return date.toMillis();
+      if (typeof date === 'object' && 'toDate' in date) {
+        return (date as any).toDate().getTime();
+      }
+      return 0;
+    };
+
+    const aTime = getTimestamp(a.updatedAt);
+    const bTime = getTimestamp(b.updatedAt);
+    return bTime - aTime; // Descending order
+  });
+
+  return applications;
 }
 

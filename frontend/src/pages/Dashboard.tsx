@@ -25,6 +25,7 @@ import {
   LogOut,
   Loader2,
   Sparkles,
+  Briefcase,
 } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 import { NewResumeModal } from "@/components/modals/NewResumeModal"
@@ -170,6 +171,12 @@ export default function DashboardPage() {
                 Resume Critique
               </Link>
               <Link
+                to="/job-tracker"
+                className="text-sm font-medium text-[#C9B896] hover:text-[#F5F1E8] transition-colors"
+              >
+                Job Tracker
+              </Link>
+              <Link
                 to="/templates"
                 className="text-sm font-medium text-[#C9B896] hover:text-[#F5F1E8] transition-colors"
               >
@@ -252,6 +259,13 @@ export default function DashboardPage() {
                 >
                   <Sparkles className="h-4 w-4" />
                   Resume Critique
+                </Link>
+                <Link
+                  to="/job-tracker"
+                  className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-[#C9B896] hover:bg-[#3a5f24]/10 hover:text-[#F5F1E8] transition-colors"
+                >
+                  <Briefcase className="h-4 w-4" />
+                  Job Tracker
                 </Link>
                 <Link
                   to="/templates"

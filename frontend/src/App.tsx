@@ -7,6 +7,7 @@ import TemplatesPage from "./pages/Templates"
 import BlockEditor from "./pages/BlockEditor"
 import ResumeTest from "./pages/ResumeTest"
 import ResumeCritiquePage from "./pages/ResumeCritique"
+import JobTrackerPage from "./pages/JobTracker"
 
 function App() {
   return (
@@ -60,6 +61,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <ResumeCritiquePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/job-tracker"
+            element={
+              <ProtectedRoute>
+                <JobTrackerPage />
               </ProtectedRoute>
             }
           />
