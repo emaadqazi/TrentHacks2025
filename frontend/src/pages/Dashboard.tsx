@@ -34,7 +34,7 @@ export default function DashboardPage() {
     {
       id: '1',
       role: 'assistant',
-      content: "Hey! The CS job market is brutal right now - no excuses, just action. How many LeetCode problems did you solve today? 💪",
+      content: "Look, the CS job market is absolutely brutal right now. While you're here chatting, your competition is grinding LeetCode. How many problems did you solve today? And don't give me excuses. 💪",
       timestamp: new Date(),
     },
   ])
@@ -47,6 +47,7 @@ export default function DashboardPage() {
   const inputRef = useRef<HTMLInputElement>(null)
 
   const userDisplayName = currentUser?.displayName || currentUser?.email?.split('@')[0] || 'User'
+  const userFirstName = userDisplayName.split(' ')[0] // Get only first name
   const userEmail = currentUser?.email || ''
   const userInitials = userDisplayName
     .split(' ')
@@ -62,7 +63,7 @@ export default function DashboardPage() {
 
     // Initial 1 second delay before starting animation
     const initialDelay = setTimeout(() => {
-      const fullWelcomeMessage = `Welcome Back, ${userDisplayName.toUpperCase()}`
+      const fullWelcomeMessage = `Welcome Back, ${userFirstName}!` // Use first name, no uppercase
       let currentIndex = 0
       setWelcomeText('') // Start with empty text
 
@@ -89,7 +90,7 @@ export default function DashboardPage() {
       clearInterval(typeInterval)
       clearTimeout(finalTimeout)
     }
-  }, [userDisplayName])
+  }, [userFirstName])
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -372,7 +373,7 @@ export default function DashboardPage() {
                   <div className="flex-shrink-0">
                     <div className="w-12 h-12 rounded-lg overflow-hidden border-2 border-[#527853]/50 shadow-lg">
                       <img 
-                        src="/AI_ResuBlocks.jpg" 
+                        src="/NewAndImproved.jpg" 
                         alt="AI Assistant" 
                         className="w-full h-full object-cover"
                         onError={(e) => {
@@ -387,7 +388,7 @@ export default function DashboardPage() {
                     </div>
                   </div>
                   <div className="bg-gradient-to-br from-[#527853]/20 to-[#3a5f24]/20 border border-[#527853]/30 rounded-2xl px-4 py-3">
-                    <div className="flex gap-1">
+                    <div className="flex gap-1.5">
                       <div className="w-2 h-2 bg-[#527853] rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
                       <div className="w-2 h-2 bg-[#527853] rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
                       <div className="w-2 h-2 bg-[#527853] rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
@@ -418,7 +419,7 @@ export default function DashboardPage() {
                   className="bg-gradient-to-r from-[#527853] to-[#3a5f24] hover:from-[#628963] hover:to-[#4a7534] text-white px-6 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isLoading ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <Loader2 className="h-5 w-5 animate-spin text-white" />
                   ) : (
                     <Send className="h-5 w-5" />
                   )}

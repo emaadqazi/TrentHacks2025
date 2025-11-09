@@ -191,29 +191,16 @@ export default function ResumeCritiquePage() {
     return 'text-red-400';
   };
 
-  const getPriorityColor = (priority: string) => {
+  const getPriorityNumberColor = (priority: string) => {
     switch (priority) {
       case 'high':
-        return 'bg-red-500/20 text-red-400 border-red-500/30';
+        return { text: 'text-red-400', border: 'border-red-500' };
       case 'medium':
-        return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
+        return { text: 'text-yellow-400', border: 'border-yellow-500' };
       case 'low':
-        return 'bg-green-500/20 text-green-400 border-green-500/30';
+        return { text: 'text-green-400', border: 'border-green-500' };
       default:
-        return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
-    }
-  };
-
-  const getPriorityBorderColor = (priority: string) => {
-    switch (priority) {
-      case 'high':
-        return 'border-l-4 border-red-500';
-      case 'medium':
-        return 'border-l-4 border-yellow-500';
-      case 'low':
-        return 'border-l-4 border-green-500';
-      default:
-        return 'border-l-4 border-gray-500';
+        return { text: 'text-gray-400', border: 'border-gray-500' };
     }
   };
 
@@ -421,145 +408,145 @@ export default function ResumeCritiquePage() {
                     <div className="grid lg:grid-cols-[1fr_1.5fr] gap-8">
                       {/* Left: Critique Results */}
                       <div className="space-y-6">
-                      {/* Overall Score */}
-                      <Card className="border border-[#8B6F47]/20 bg-gradient-to-br from-[#221410] to-[#1a0f08] shadow-xl backdrop-blur-xl">
-                        <CardContent className="p-8">
-                          <div className="text-center mb-8">
-                            <div className={`mx-auto mb-5 flex h-28 w-28 items-center justify-center rounded-full border-2 ${getScoreColor(critique.score.overall)} border-current bg-gradient-to-br from-[#1a0f08] to-[#221410] shadow-lg`}>
-                              <span className={`text-4xl font-semibold ${getScoreColor(critique.score.overall)}`}>
-                                {critique.score.overall}
-                              </span>
-                            </div>
-                            <h3 className="text-2xl font-semibold text-[#F5F1E8] mb-2 tracking-tight">Overall Score</h3>
-                            <p className="text-sm text-[#C9B896] font-medium">
-                              {critique.score.overall >= 80 ? 'Excellent' : critique.score.overall >= 60 ? 'Good' : 'Needs Improvement'}
-                            </p>
-                          </div>
-
-                          {/* Score Breakdown */}
-                          <div className="space-y-4">
-                            {[
-                              { label: 'Clarity', score: critique.score.clarity },
-                              { label: 'Impact', score: critique.score.impact },
-                              { label: 'ATS Score', score: critique.score.atsScore },
-                              { label: 'Formatting', score: critique.score.formatting },
-                              { label: 'Content', score: critique.score.content },
-                            ].map((item) => (
-                              <div key={item.label} className="space-y-2">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-sm font-medium text-[#C9B896] tracking-wide uppercase text-xs">{item.label}</span>
-                                  <span className={`text-base font-semibold ${getScoreColor(item.score)}`}>
-                                    {item.score}
-                                  </span>
-                                </div>
-                                <div className="h-2.5 w-full rounded-full bg-[#1a0f08] overflow-hidden shadow-inner">
-                                  <motion.div
-                                    initial={{ width: 0 }}
-                                    animate={{ width: `${item.score}%` }}
-                                    transition={{ duration: 0.8, ease: "easeOut" }}
-                                    className={`h-full rounded-full ${
-                                      item.score >= 80 ? 'bg-gradient-to-r from-green-500 to-green-400' 
-                                      : item.score >= 60 
-                                      ? 'bg-gradient-to-r from-yellow-500 to-yellow-400' 
-                                      : 'bg-gradient-to-r from-red-500 to-red-400'
-                                    } shadow-sm`}
-                                  />
-                                </div>
+                        {/* Overall Score */}
+                        <Card className="border border-[#8B6F47]/20 bg-gradient-to-br from-[#221410] to-[#1a0f08] shadow-xl backdrop-blur-xl">
+                          <CardContent className="p-8">
+                            <div className="text-center mb-8">
+                              <div className={`mx-auto mb-5 flex h-28 w-28 items-center justify-center rounded-full border-2 ${getScoreColor(critique.score.overall)} border-current bg-gradient-to-br from-[#1a0f08] to-[#221410] shadow-lg`}>
+                                <span className={`text-4xl font-semibold ${getScoreColor(critique.score.overall)}`}>
+                                  {critique.score.overall}
+                                </span>
                               </div>
-                            ))}
-                          </div>
-                        </CardContent>
-                      </Card>
+                              <h3 className="text-2xl font-semibold text-[#F5F1E8] mb-2 tracking-tight">Overall Score</h3>
+                              <p className="text-sm text-[#C9B896] font-medium">
+                                {critique.score.overall >= 80 ? 'Excellent' : critique.score.overall >= 60 ? 'Good' : 'Needs Improvement'}
+                              </p>
+                            </div>
 
-                      {/* Summary */}
-                      <Card className="border border-[#8B6F47]/20 bg-gradient-to-br from-[#221410] to-[#1a0f08] shadow-xl backdrop-blur-xl">
-                        <CardContent className="p-8">
-                          <h3 className="text-xl font-semibold text-[#F5F1E8] mb-4 tracking-tight">Executive Summary</h3>
-                          <p className="text-sm text-[#C9B896] leading-relaxed font-medium">{critique.summary}</p>
-                        </CardContent>
-                      </Card>
+                            {/* Score Breakdown */}
+                            <div className="space-y-4">
+                              {[
+                                { label: 'Clarity', score: critique.score.clarity },
+                                { label: 'Impact', score: critique.score.impact },
+                                { label: 'ATS Score', score: critique.score.atsScore },
+                                { label: 'Formatting', score: critique.score.formatting },
+                                { label: 'Content', score: critique.score.content },
+                              ].map((item) => (
+                                <div key={item.label} className="space-y-2">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-sm font-medium text-[#C9B896] tracking-wide uppercase text-xs">{item.label}</span>
+                                    <span className={`text-base font-semibold ${getScoreColor(item.score)}`}>
+                                      {item.score}
+                                    </span>
+                                  </div>
+                                  <div className="h-2.5 w-full rounded-full bg-[#1a0f08] overflow-hidden shadow-inner">
+                                    <motion.div
+                                      initial={{ width: 0 }}
+                                      animate={{ width: `${item.score}%` }}
+                                      transition={{ duration: 0.8, ease: "easeOut" }}
+                                      className={`h-full rounded-full ${
+                                        item.score >= 80 ? 'bg-gradient-to-r from-green-500 to-green-400' 
+                                        : item.score >= 60 
+                                        ? 'bg-gradient-to-r from-yellow-500 to-yellow-400' 
+                                        : 'bg-gradient-to-r from-red-500 to-red-400'
+                                      } shadow-sm`}
+                                    />
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </CardContent>
+                        </Card>
 
-                      {/* Suggestions */}
-                      <Card className="border border-[#8B6F47]/20 bg-gradient-to-br from-[#221410] to-[#1a0f08] shadow-xl backdrop-blur-xl">
-                        <CardContent className="p-8">
-                          <h3 className="text-xl font-semibold text-[#F5F1E8] mb-6 tracking-tight">Recommendations</h3>
-                          <div className="space-y-4">
-                            {critique.suggestions
-                              .sort((a, b) => {
-                                const priorityOrder = { high: 0, medium: 1, low: 2 };
-                                return priorityOrder[a.priority] - priorityOrder[b.priority];
-                              })
-                              .map((suggestion, index) => {
-                                const categoryColors = getCategoryColor(suggestion.category);
-                                const priorityNumber = index + 1;
-                                const priorityColors = getPriorityNumberColor(suggestion.priority);
-                                return (
-                                  <motion.div
-                                    key={suggestion.id}
-                                    initial={{ opacity: 0, x: -20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: index * 0.1 }}
-                                    className={`p-5 rounded-xl ${categoryColors.accent} ${categoryColors.bg} border-t border-r border-b ${categoryColors.border} hover:shadow-lg hover:bg-[#1a0f08]/80 transition-all duration-200`}
-                                  >
-                                    <div className="flex items-start gap-4">
-                                      {/* Priority Number */}
-                                      <div className={`flex-shrink-0 flex h-8 w-8 items-center justify-center rounded-full bg-[#221410] border-2 ${priorityColors.border} font-semibold text-sm ${priorityColors.text}`}>
-                                        {priorityNumber}
-                                      </div>
-                                      
-                                      {/* Category Icon */}
-                                      <div className="flex-shrink-0 mt-0.5">
-                                        {suggestion.category === 'strength' && (
-                                          <div className={`flex h-10 w-10 items-center justify-center rounded-full ${categoryColors.iconBg}`}>
-                                            <CheckCircle2 className={`h-5 w-5 ${categoryColors.iconColor}`} />
-                                          </div>
-                                        )}
-                                        {suggestion.category === 'weakness' && (
-                                          <div className={`flex h-10 w-10 items-center justify-center rounded-full ${categoryColors.iconBg}`}>
-                                            <XCircle className={`h-5 w-5 ${categoryColors.iconColor}`} />
-                                          </div>
-                                        )}
-                                        {suggestion.category === 'improvement' && (
-                                          <div className={`flex h-10 w-10 items-center justify-center rounded-full ${categoryColors.iconBg}`}>
-                                            <TrendingUp className={`h-5 w-5 ${categoryColors.iconColor}`} />
-                                          </div>
-                                        )}
-                                      </div>
-                                      
-                                      {/* Content */}
-                                      <div className="flex-1 min-w-0">
-                                        <h4 className="text-base font-semibold text-[#F5F1E8] mb-2">{suggestion.title}</h4>
-                                        <p className="text-sm text-[#C9B896] leading-relaxed font-medium">{suggestion.description}</p>
-                                      </div>
-                                    </div>
-                                  </motion.div>
-                                );
-                              })}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </div>
+                        {/* Summary */}
+                        <Card className="border border-[#8B6F47]/20 bg-gradient-to-br from-[#221410] to-[#1a0f08] shadow-xl backdrop-blur-xl">
+                          <CardContent className="p-8">
+                            <h3 className="text-xl font-semibold text-[#F5F1E8] mb-4 tracking-tight">Executive Summary</h3>
+                            <p className="text-sm text-[#C9B896] leading-relaxed font-medium">{critique.summary}</p>
+                          </CardContent>
+                        </Card>
 
-                    {/* Right: PDF Viewer */}
-                    {file && (
-                      <div className="h-[calc(100vh-200px)] min-h-[600px]">
-                        <PDFViewer 
-                          file={file} 
-                          onDownload={() => {
-                            const url = URL.createObjectURL(file);
-                            const a = document.createElement('a');
-                            a.href = url;
-                            a.download = file.name;
-                            a.click();
-                            URL.revokeObjectURL(url);
-                          }}
-                          className="h-full"
-                        />
+                        {/* Suggestions */}
+                        <Card className="border border-[#8B6F47]/20 bg-gradient-to-br from-[#221410] to-[#1a0f08] shadow-xl backdrop-blur-xl">
+                          <CardContent className="p-8">
+                            <h3 className="text-xl font-semibold text-[#F5F1E8] mb-6 tracking-tight">Recommendations</h3>
+                            <div className="space-y-4">
+                              {critique.suggestions
+                                .sort((a, b) => {
+                                  const priorityOrder = { high: 0, medium: 1, low: 2 };
+                                  return priorityOrder[a.priority] - priorityOrder[b.priority];
+                                })
+                                .map((suggestion, index) => {
+                                  const categoryColors = getCategoryColor(suggestion.category);
+                                  const priorityNumber = index + 1;
+                                  const priorityColors = getPriorityNumberColor(suggestion.priority);
+                                  return (
+                                    <motion.div
+                                      key={suggestion.id}
+                                      initial={{ opacity: 0, x: -20 }}
+                                      animate={{ opacity: 1, x: 0 }}
+                                      transition={{ delay: index * 0.1 }}
+                                      className={`p-5 rounded-xl ${categoryColors.accent} ${categoryColors.bg} border-t border-r border-b ${categoryColors.border} hover:shadow-lg hover:bg-[#1a0f08]/80 transition-all duration-200`}
+                                    >
+                                      <div className="flex items-start gap-4">
+                                        {/* Priority Number */}
+                                        <div className={`flex-shrink-0 flex h-8 w-8 items-center justify-center rounded-full bg-[#221410] border-2 ${priorityColors.border} font-semibold text-sm ${priorityColors.text}`}>
+                                          {priorityNumber}
+                                        </div>
+                                        
+                                        {/* Category Icon */}
+                                        <div className="flex-shrink-0 mt-0.5">
+                                          {suggestion.category === 'strength' && (
+                                            <div className={`flex h-10 w-10 items-center justify-center rounded-full ${categoryColors.iconBg}`}>
+                                              <CheckCircle2 className={`h-5 w-5 ${categoryColors.iconColor}`} />
+                                            </div>
+                                          )}
+                                          {suggestion.category === 'weakness' && (
+                                            <div className={`flex h-10 w-10 items-center justify-center rounded-full ${categoryColors.iconBg}`}>
+                                              <XCircle className={`h-5 w-5 ${categoryColors.iconColor}`} />
+                                            </div>
+                                          )}
+                                          {suggestion.category === 'improvement' && (
+                                            <div className={`flex h-10 w-10 items-center justify-center rounded-full ${categoryColors.iconBg}`}>
+                                              <TrendingUp className={`h-5 w-5 ${categoryColors.iconColor}`} />
+                                            </div>
+                                          )}
+                                        </div>
+                                        
+                                        {/* Content */}
+                                        <div className="flex-1 min-w-0">
+                                          <h4 className="text-base font-semibold text-[#F5F1E8] mb-2">{suggestion.title}</h4>
+                                          <p className="text-sm text-[#C9B896] leading-relaxed font-medium">{suggestion.description}</p>
+                                        </div>
+                                      </div>
+                                    </motion.div>
+                                  );
+                                })}
+                            </div>
+                          </CardContent>
+                        </Card>
                       </div>
-                    )}
+
+                      {/* Right: PDF Viewer */}
+                      {file && (
+                        <div className="h-[calc(100vh-200px)] min-h-[600px]">
+                          <PDFViewer 
+                            file={file} 
+                            onDownload={() => {
+                              const url = URL.createObjectURL(file);
+                              const a = document.createElement('a');
+                              a.href = url;
+                              a.download = file.name;
+                              a.click();
+                              URL.revokeObjectURL(url);
+                            }}
+                            className="h-full"
+                          />
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
               </motion.div>
             )}
           </AnimatePresence>
