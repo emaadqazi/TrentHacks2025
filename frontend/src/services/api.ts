@@ -1,7 +1,10 @@
 import axios from 'axios';
 
+// Use environment variable for API URL, fallback to relative path
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -13,10 +16,10 @@ export const resumeApi = {
     formData.append('file', file);
 
     console.log('📤 Uploading:', file.name, file.size, 'bytes');
-    console.log('📤 URL:', '/api/resume/upload');
+    console.log('📤 URL:', `${API_BASE_URL}/resume/upload`);
 
     try {
-      const response = await fetch('/api/resume/upload', {
+      const response = await fetch(`${API_BASE_URL}/resume/upload`, {
         method: 'POST',
         body: formData,
       });
