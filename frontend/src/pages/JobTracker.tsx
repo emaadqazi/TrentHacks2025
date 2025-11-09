@@ -28,6 +28,7 @@ import {
   Loader2,
 } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
+import { getUserProfile } from "@/lib/userProfile"
 import toast from "react-hot-toast"
 import type { JobApplication, ApplicationStatus, Position, JobApplicationInput } from "@/types/jobApplication"
 import { getUserJobApplications, createJobApplication, updateJobApplication, deleteJobApplication } from "@/lib/firestore"
@@ -79,6 +80,7 @@ export default function JobTrackerPage() {
   const [applications, setApplications] = useState<JobApplication[]>([])
   const [filterStatus, setFilterStatus] = useState<ApplicationStatus | "All">("All")
   const [loading, setLoading] = useState(true)
+  const [userProfilePhoto, setUserProfilePhoto] = useState<string | null>(null)
 
   const userDisplayName = currentUser?.displayName || currentUser?.email?.split('@')[0] || 'User'
   const userEmail = currentUser?.email || ''
@@ -97,6 +99,12 @@ export default function JobTrackerPage() {
           setLoading(true)
           const userApplications = await getUserJobApplications(currentUser.uid)
           setApplications(userApplications)
+          
+          // Load profile photo
+          const profile = await getUserProfile(currentUser.uid)
+          if (profile?.profilePhotoUrl) {
+            setUserProfilePhoto(profile.profilePhotoUrl)
+          }
         } catch (error) {
           console.error('Error loading applications:', error)
           toast.error('Failed to load applications')
@@ -236,7 +244,7 @@ export default function JobTrackerPage() {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-9 w-9 rounded-full hover:bg-[#F5F1E8]/10">
                 <Avatar className="h-9 w-9">
-                  <AvatarImage src={currentUser?.photoURL || undefined} alt={userDisplayName} />
+                  <AvatarImage src={userProfilePhoto || currentUser?.photoURL || undefined} alt={userDisplayName} />
                   <AvatarFallback className="bg-gradient-to-br from-[#3a5f24] to-[#253f12] text-white">{userInitials}</AvatarFallback>
                 </Avatar>
               </Button>
@@ -249,7 +257,12 @@ export default function JobTrackerPage() {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator className="bg-[#8B6F47]/30" />
-              <DropdownMenuItem className="text-[#F5F1E8] focus:bg-[#3a5f24]/20 focus:text-[#F5F1E8]">Profile Settings</DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => navigate('/profile')}
+                className="text-[#F5F1E8] focus:bg-[#3a5f24]/20 focus:text-[#F5F1E8]"
+              >
+                Profile Settings
+              </DropdownMenuItem>
               <DropdownMenuItem className="text-[#F5F1E8] focus:bg-[#3a5f24]/20 focus:text-[#F5F1E8]">Billing</DropdownMenuItem>
               <DropdownMenuSeparator className="bg-[#8B6F47]/30" />
               <DropdownMenuItem onClick={handleLogout} className="text-[#F5F1E8] focus:bg-[#3a5f24]/20 focus:text-[#F5F1E8]">

@@ -27,6 +27,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { PDFViewer } from '@/components/resume/PDFViewer';
+import { getUserProfile, getUserResumePDF } from '@/lib/userProfile';
 
 interface CritiqueScore {
   overall: number;
@@ -62,6 +63,7 @@ export default function ResumeCritiquePage() {
   const [critique, setCritique] = useState<CritiqueResult | null>(null);
   const [displayedText, setDisplayedText] = useState('');
   const [showUpload, setShowUpload] = useState(true);
+  const [userProfilePhoto, setUserProfilePhoto] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const text = 'UPLOAD YOUR RESUME';
@@ -73,6 +75,38 @@ export default function ResumeCritiquePage() {
     .join('')
     .toUpperCase()
     .slice(0, 2) || 'U';
+
+  // Load stored resume and profile photo on mount
+  useEffect(() => {
+    if (currentUser) {
+      loadStoredResume();
+      getUserProfile(currentUser.uid).then(profile => {
+        if (profile?.profilePhotoUrl) {
+          setUserProfilePhoto(profile.profilePhotoUrl);
+        }
+      }).catch(console.error);
+    }
+  }, [currentUser]);
+
+  const loadStoredResume = async () => {
+    if (!currentUser) return;
+    try {
+      const resumeUrl = await getUserResumePDF(currentUser.uid);
+      if (resumeUrl) {
+        // Fetch the PDF file from URL
+        const response = await fetch(resumeUrl);
+        const blob = await response.blob();
+        const profile = await getUserProfile(currentUser.uid);
+        const fileName = profile?.resumeFileName || 'resume.pdf';
+        const pdfFile = new File([blob], fileName, { type: 'application/pdf' });
+        setFile(pdfFile);
+        setShowUpload(false);
+        await analyzeResume(pdfFile);
+      }
+    } catch (error) {
+      console.error('Error loading stored resume:', error);
+    }
+  };
 
   // Typewriter effect
   useEffect(() => {
@@ -294,7 +328,7 @@ export default function ResumeCritiquePage() {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-9 w-9 rounded-full hover:bg-[#F5F1E8]/10">
                 <Avatar className="h-9 w-9">
-                  <AvatarImage src={currentUser?.photoURL || undefined} alt={userDisplayName} />
+                  <AvatarImage src={userProfilePhoto || currentUser?.photoURL || undefined} alt={userDisplayName} />
                   <AvatarFallback className="bg-gradient-to-br from-[#3a5f24] to-[#253f12] text-white">{userInitials}</AvatarFallback>
                 </Avatar>
               </Button>

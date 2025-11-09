@@ -17,6 +17,7 @@ import {
   Loader2,
 } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
+import { getUserProfile } from "@/lib/userProfile"
 import { motion, AnimatePresence } from "framer-motion"
 import toast from "react-hot-toast"
 
@@ -43,6 +44,7 @@ export default function DashboardPage() {
   const [welcomeText, setWelcomeText] = useState('')
   const [welcomePosition, setWelcomePosition] = useState<'center' | 'top'>('center')
   const [showChat, setShowChat] = useState(false)
+  const [userProfilePhoto, setUserProfilePhoto] = useState<string | null>(null)
   const chatEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -55,6 +57,17 @@ export default function DashboardPage() {
     .join('')
     .toUpperCase()
     .slice(0, 2) || 'U'
+
+  // Load user profile photo
+  useEffect(() => {
+    if (currentUser) {
+      getUserProfile(currentUser.uid).then((profile: any) => {
+        if (profile?.profilePhotoUrl) {
+          setUserProfilePhoto(profile.profilePhotoUrl)
+        }
+      }).catch(console.error)
+    }
+  }, [currentUser])
 
   // Typewriter effect for welcome message
   useEffect(() => {
@@ -237,7 +250,7 @@ export default function DashboardPage() {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-9 w-9 rounded-full hover:bg-[#F5F1E8]/10">
                 <Avatar className="h-9 w-9">
-                  <AvatarImage src={currentUser?.photoURL || undefined} alt={userDisplayName} />
+                  <AvatarImage src={userProfilePhoto || currentUser?.photoURL || undefined} alt={userDisplayName} />
                   <AvatarFallback className="bg-gradient-to-br from-[#3a5f24] to-[#253f12] text-white">{userInitials}</AvatarFallback>
                 </Avatar>
               </Button>
@@ -250,7 +263,12 @@ export default function DashboardPage() {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator className="bg-[#8B6F47]/30" />
-              <DropdownMenuItem className="text-[#F5F1E8] focus:bg-[#3a5f24]/20 focus:text-[#F5F1E8]">Profile Settings</DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => navigate('/profile')}
+                className="text-[#F5F1E8] focus:bg-[#3a5f24]/20 focus:text-[#F5F1E8]"
+              >
+                Profile Settings
+              </DropdownMenuItem>
               <DropdownMenuItem className="text-[#F5F1E8] focus:bg-[#3a5f24]/20 focus:text-[#F5F1E8]">Billing</DropdownMenuItem>
               <DropdownMenuSeparator className="bg-[#8B6F47]/30" />
               <DropdownMenuItem onClick={handleLogout} className="text-[#F5F1E8] focus:bg-[#3a5f24]/20 focus:text-[#F5F1E8]">

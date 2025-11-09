@@ -9,6 +9,7 @@ import ResumeTest from "./pages/ResumeTest"
 import ResumeCritiquePage from "./pages/ResumeCritique"
 import JobTrackerPage from "./pages/JobTracker"
 import QuestionsPage from "./pages/QuestionsPage"
+import ProfilePage from "./pages/ProfilePage"
 
 function App() {
   return (
@@ -78,6 +79,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <QuestionsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <ProfilePage />
               </ProtectedRoute>
             }
           />

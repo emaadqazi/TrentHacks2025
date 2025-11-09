@@ -159,3 +159,113 @@ Example format:
   }
 }
 
+interface EvaluateAnswerRequest {
+  interviewQuestion: string;
+  userAnswer: string;
+  jobTitle?: string;
+  jobDescription?: string;
+}
+
+interface AnswerEvaluationResponse {
+  rating: number;
+  feedback: string;
+}
+
+export async function evaluateInterviewAnswer(req: Request, res: Response) {
+  try {
+    const { interviewQuestion, userAnswer, jobTitle, jobDescription }: EvaluateAnswerRequest = req.body;
+
+    if (!interviewQuestion || !userAnswer) {
+      return res.status(400).json({
+        error: 'Missing required fields: interviewQuestion and userAnswer are required',
+      });
+    }
+
+    const openai = getOpenAIClient();
+
+    const systemPrompt = `You are an expert interview coach specializing in behavioral interview questions. Your task is to evaluate a candidate's answer to an interview question and provide constructive feedback using the STAR method (Situation, Task, Action, Result).
+
+Evaluate the answer based on:
+1. **Clarity**: Is the answer clear and well-structured?
+2. **Relevance**: Does it directly address the question?
+3. **STAR Method**: Does it follow the STAR framework?
+   - **Situation**: Sets the context
+   - **Task**: Describes the challenge or responsibility
+   - **Action**: Explains what the candidate did
+   - **Result**: Shows the outcome and impact
+4. **Specificity**: Uses concrete examples and metrics
+5. **Impact**: Demonstrates the value/outcome
+
+Provide:
+- A rating from 0-10 (be critical but fair)
+- Detailed feedback focusing on STAR method improvement
+- Specific suggestions on how to strengthen each STAR component
+- Examples of what could be improved
+
+Return ONLY a JSON object with this exact structure:
+{
+  "rating": <number 0-10>,
+  "feedback": "<detailed feedback string focusing on STAR method>"
+}`;
+
+    const userPrompt = `Interview Question: "${interviewQuestion}"
+
+Candidate's Answer: "${userAnswer}"
+${jobTitle ? `\nJob Title: ${jobTitle}` : ''}
+${jobDescription ? `\nJob Description Context: ${jobDescription.substring(0, 500)}...` : ''}
+
+Evaluate this answer and provide a rating (0-10) and detailed STAR method feedback.`;
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: systemPrompt,
+        },
+        {
+          role: 'user',
+          content: userPrompt,
+        },
+      ],
+      temperature: 0.7,
+      max_tokens: 800,
+      response_format: { type: 'json_object' },
+    });
+
+    const responseContent = completion.choices[0]?.message?.content || '';
+    
+    try {
+      const cleanedContent = responseContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      const evaluation: AnswerEvaluationResponse = JSON.parse(cleanedContent);
+      
+      // Validate rating
+      if (typeof evaluation.rating !== 'number') {
+        evaluation.rating = 5;
+      }
+      evaluation.rating = Math.max(0, Math.min(10, Math.round(evaluation.rating)));
+      
+      // Ensure feedback exists
+      if (!evaluation.feedback || typeof evaluation.feedback !== 'string') {
+        evaluation.feedback = 'Unable to generate feedback. Please try again.';
+      }
+
+      res.json(evaluation);
+    } catch (parseError) {
+      console.error('Error parsing evaluation response:', parseError);
+      console.error('Response content:', responseContent);
+      
+      // Fallback response
+      res.json({
+        rating: 5,
+        feedback: 'Unable to parse evaluation. Please ensure your answer follows the STAR method (Situation, Task, Action, Result) and try again.',
+      });
+    }
+  } catch (error: any) {
+    console.error('Error evaluating interview answer:', error);
+    res.status(500).json({
+      error: error.message || 'Failed to evaluate interview answer',
+    });
+  }
+}
+

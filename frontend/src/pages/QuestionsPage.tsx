@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Blocks, LogOut, Upload, Loader2, Send } from 'lucide-react';
+import { Blocks, LogOut, Upload, Loader2, Send, X, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/contexts/AuthContext';
+import { getUserProfile, getUserResumePDF } from '@/lib/userProfile';
 import NewAndImproved from '/NewAndImproved.jpg';
 
 interface QuestionData {
@@ -28,6 +29,11 @@ interface QuestionData {
 interface InterviewQuestion {
   id: string;
   question: string;
+}
+
+interface AnswerEvaluation {
+  rating: number;
+  feedback: string;
 }
 
 export default function QuestionsPage() {
@@ -48,6 +54,14 @@ export default function QuestionsPage() {
   const [interviewQuestions, setInterviewQuestions] = useState<InterviewQuestion[]>([]);
   const [showResults, setShowResults] = useState(false);
   
+  // Answer evaluation states
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedQuestion, setSelectedQuestion] = useState<InterviewQuestion | null>(null);
+  const [userAnswer, setUserAnswer] = useState('');
+  const [evaluation, setEvaluation] = useState<AnswerEvaluation | null>(null);
+  const [isEvaluating, setIsEvaluating] = useState(false);
+  const [userProfile, setUserProfile] = useState<any>(null);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
   const questionsContainerRef = useRef<HTMLDivElement>(null);
 
@@ -60,6 +74,34 @@ export default function QuestionsPage() {
     .join('')
     .toUpperCase()
     .slice(0, 2);
+
+  // Load stored resume on mount
+  useEffect(() => {
+    if (currentUser) {
+      loadStoredResume();
+    }
+  }, [currentUser]);
+
+  const loadStoredResume = async () => {
+    if (!currentUser) return;
+    try {
+      const profile = await getUserProfile(currentUser.uid);
+      setUserProfile(profile);
+      
+      const resumeUrl = await getUserResumePDF(currentUser.uid);
+      if (resumeUrl) {
+        // Fetch the PDF file from URL
+        const response = await fetch(resumeUrl);
+        const blob = await response.blob();
+        const fileName = profile?.resumeFileName || 'resume.pdf';
+        const pdfFile = new File([blob], fileName, { type: 'application/pdf' });
+        setResumeFile(pdfFile);
+        setQuestionData(prev => ({ ...prev, resumeText: 'Loaded from profile' }));
+      }
+    } catch (error) {
+      console.error('Error loading stored resume:', error);
+    }
+  };
 
   // Typewriter effect for initial prompt
   useEffect(() => {
@@ -193,6 +235,54 @@ export default function QuestionsPage() {
     }
   };
 
+  const openAnswerModal = (question: InterviewQuestion) => {
+    setSelectedQuestion(question);
+    setUserAnswer('');
+    setEvaluation(null);
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedQuestion(null);
+    setUserAnswer('');
+    setEvaluation(null);
+  };
+
+  const submitAnswerForEvaluation = async () => {
+    if (!selectedQuestion || !userAnswer.trim()) {
+      return;
+    }
+
+    setIsEvaluating(true);
+    try {
+      const response = await fetch('/api/questions/evaluate-answer', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          interviewQuestion: selectedQuestion.question,
+          userAnswer: userAnswer,
+          jobTitle: questionData.jobTitle,
+          jobDescription: questionData.jobDescription,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to evaluate answer');
+      }
+
+      const data: AnswerEvaluation = await response.json();
+      setEvaluation(data);
+    } catch (error) {
+      console.error('Error evaluating answer:', error);
+      alert('Failed to evaluate answer. Please try again.');
+    } finally {
+      setIsEvaluating(false);
+    }
+  };
+
   const isLastQuestion = currentQuestionIndex === questions.length - 1;
 
   return (
@@ -241,10 +331,20 @@ export default function QuestionsPage() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-9 w-9 rounded-full hover:bg-[#F5F1E8]/10">
-                <Avatar className="h-9 w-9">
-                  <AvatarImage src={currentUser?.photoURL || undefined} alt={userDisplayName} />
-                  <AvatarFallback className="bg-gradient-to-br from-[#3a5f24] to-[#253f12] text-white">{userInitials}</AvatarFallback>
-                </Avatar>
+                {currentUser?.photoURL || userProfile?.profilePhotoUrl ? (
+                  <Avatar className="h-9 w-9">
+                    <AvatarImage src={userProfile?.profilePhotoUrl || currentUser?.photoURL || undefined} alt={userDisplayName} />
+                    <AvatarFallback className="bg-gradient-to-br from-[#3a5f24] to-[#253f12] text-white">
+                      {userInitials}
+                    </AvatarFallback>
+                  </Avatar>
+                ) : (
+                  <Avatar className="h-9 w-9">
+                    <AvatarFallback className="bg-gradient-to-br from-[#3a5f24] to-[#253f12] text-white">
+                      {userInitials}
+                    </AvatarFallback>
+                  </Avatar>
+                )}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56 bg-[#221410] border-[#8B6F47]/30" align="end" forceMount>
@@ -255,7 +355,12 @@ export default function QuestionsPage() {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator className="bg-[#8B6F47]/30" />
-              <DropdownMenuItem className="text-[#F5F1E8] focus:bg-[#3a5f24]/20 focus:text-[#F5F1E8]">Profile Settings</DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => navigate('/profile')}
+                className="text-[#F5F1E8] focus:bg-[#3a5f24]/20 focus:text-[#F5F1E8]"
+              >
+                Profile Settings
+              </DropdownMenuItem>
               <DropdownMenuItem className="text-[#F5F1E8] focus:bg-[#3a5f24]/20 focus:text-[#F5F1E8]">Billing</DropdownMenuItem>
               <DropdownMenuSeparator className="bg-[#8B6F47]/30" />
               <DropdownMenuItem onClick={handleLogout} className="text-[#F5F1E8] focus:bg-[#3a5f24]/20 focus:text-[#F5F1E8]">
@@ -443,7 +548,8 @@ export default function QuestionsPage() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
-                    className="p-4 rounded-lg bg-[#1a0f08]/60 border border-[#8B6F47]/20 border-l-4 border-l-[#527853]"
+                    className="p-4 rounded-lg bg-[#1a0f08]/60 border border-[#8B6F47]/20 border-l-4 border-l-[#527853] cursor-pointer hover:bg-[#1a0f08]/80 hover:border-[#527853] transition-all"
+                    onClick={() => openAnswerModal(q)}
                   >
                     <div className="flex items-start gap-4">
                       <div className="flex-shrink-0 h-8 w-8 rounded-full bg-gradient-to-br from-[#3a5f24] to-[#253f12] flex items-center justify-center text-white font-bold text-sm">
@@ -478,6 +584,107 @@ export default function QuestionsPage() {
           </motion.div>
         )}
       </div>
+
+      {/* Answer Evaluation Modal */}
+      {isModalOpen && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+          onClick={closeModal}
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            onClick={(e) => e.stopPropagation()}
+            className="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto bg-[#221410] border border-[#8B6F47]/30 rounded-xl shadow-2xl"
+          >
+            {/* Close Button */}
+            <button
+              onClick={closeModal}
+              className="absolute top-4 right-4 p-2 rounded-full hover:bg-[#1a0f08] text-[#C9B896] hover:text-[#F5F1E8] transition-colors"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <div className="p-6">
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold text-[#F5F1E8] mb-2">Practice Your Answer</h2>
+                <p className="text-lg font-semibold text-[#C9B896] mb-4">{selectedQuestion?.question}</p>
+              </div>
+
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-[#F5F1E8] mb-2">
+                  Your Answer (Use STAR method: Situation, Task, Action, Result)
+                </label>
+                <Textarea
+                  value={userAnswer}
+                  onChange={(e) => setUserAnswer(e.target.value)}
+                  placeholder="Describe a specific situation, the task you faced, the action you took, and the result you achieved..."
+                  rows={8}
+                  className="w-full bg-[#1a0f08] border-[#8B6F47]/50 text-[#F5F1E8] placeholder:text-[#C9B896] focus:ring-[#527853] resize-none"
+                  disabled={isEvaluating}
+                />
+              </div>
+
+              {evaluation && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mb-6 p-6 bg-[#1a0f08]/60 border border-[#8B6F47]/30 rounded-lg"
+                >
+                  <div className="flex items-center gap-3 mb-4">
+                    <Star className="h-6 w-6 text-yellow-400 fill-yellow-400" />
+                    <h3 className="text-xl font-bold text-[#F5F1E8]">AI Evaluation</h3>
+                  </div>
+                  <div className="mb-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-lg font-semibold text-[#C9B896]">Rating:</span>
+                      <span className="text-3xl font-bold text-[#527853]">{evaluation.rating}/10</span>
+                    </div>
+                    <div className="w-full bg-[#1a0f08] rounded-full h-3 mb-2">
+                      <div
+                        className="bg-gradient-to-r from-[#527853] to-[#3a5f24] h-3 rounded-full transition-all duration-500"
+                        style={{ width: `${(evaluation.rating / 10) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="text-lg font-semibold text-[#F5F1E8] mb-2">STAR Method Feedback:</h4>
+                    <p className="text-[#C9B896] whitespace-pre-wrap leading-relaxed">{evaluation.feedback}</p>
+                  </div>
+                </motion.div>
+              )}
+
+              <div className="flex gap-4 justify-end">
+                <Button
+                  onClick={closeModal}
+                  variant="outline"
+                  className="border-[#8B6F47]/50 text-[#F5F1E8] hover:bg-[#3a5f24]/20"
+                >
+                  Close
+                </Button>
+                <Button
+                  onClick={submitAnswerForEvaluation}
+                  disabled={!userAnswer.trim() || isEvaluating}
+                  className="bg-gradient-to-r from-[#3a5f24] to-[#253f12] hover:from-[#4a7534] hover:to-[#355222] text-white"
+                >
+                  {isEvaluating ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Evaluating...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="mr-2 h-4 w-4" />
+                      Submit Answer
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }
