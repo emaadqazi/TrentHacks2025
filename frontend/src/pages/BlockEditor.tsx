@@ -3,23 +3,28 @@ import { Link, useParams } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Blocks, ArrowLeft, Loader2 } from "lucide-react"
-import type { Resume, JobDescription, SuggestionBlock, MatchAnalysis } from "@/types/resume"
+import type { Resume, JobDescription, MatchAnalysis, SectionType, Section, Block } from "@/types/resume"
 import JobDescriptionPanel from "@/components/block-editor/JobDescriptionPanel"
-import ResumeCanvas from "@/components/block-editor/ResumeCanvas"
-import SuggestionsPanel from "@/components/block-editor/SuggestionsPanel"
+import LivePreview from "@/components/block-editor/LivePreview"
+import AISuggestionsPanel from "@/components/block-editor/AISuggestionsPanel"
 import MatchScoreBar from "@/components/block-editor/MatchScoreBar"
 import { getResume, updateResumeData } from "@/lib/firestore"
 import type { UserResume } from "@/lib/firestore"
 import toast from "react-hot-toast"
+
+interface AiSuggestions {
+  skills?: string[]
+  summary?: string[]
+  bullets?: Array<{ text: string; sectionType?: SectionType }>
+}
 
 export default function BlockEditor() {
   const { id: resumeId } = useParams<{ id: string }>()
   const [resumeMetadata, setResumeMetadata] = useState<UserResume | null>(null)
   const [resume, setResume] = useState<Resume | null>(null)
   const [jobDescription, setJobDescription] = useState<JobDescription | null>(null)
-  const [suggestions] = useState<SuggestionBlock[]>([])
-  const [matchAnalysis] = useState<MatchAnalysis | null>(null)
-  const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null)
+  const [matchAnalysis, setMatchAnalysis] = useState<MatchAnalysis | null>(null)
+  const [aiSuggestions, setAiSuggestions] = useState<AiSuggestions | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
@@ -73,120 +78,167 @@ export default function BlockEditor() {
 
   const handleJobDescriptionAnalyze = (jd: JobDescription) => {
     setJobDescription(jd)
-    // TODO: Call API to analyze JD and generate suggestions
-    // For now, we'll mock some AI suggestions
+    // Mock AI suggestions for now
     setAiSuggestions({
-      skills: ['React', 'TypeScript', 'Node.js', 'Python', 'AWS'],
+      skills: ["React", "TypeScript", "Node.js", "Python", "AWS"],
       summary: [
-        'Experienced software engineer with expertise in full-stack development',
-        'Passionate about building scalable web applications',
-        'Strong problem-solving and collaboration skills'
+        "Experienced software engineer with expertise in full-stack development",
+        "Passionate about building scalable web applications",
+        "Strong problem-solving and collaboration skills",
       ],
       bullets: [
-        { text: 'Developed and maintained React applications', sectionType: 'experience' },
-        { text: 'Implemented RESTful APIs using Node.js', sectionType: 'experience' },
-        { text: 'Collaborated with cross-functional teams', sectionType: 'experience' }
-      ]
+        { text: "Developed and maintained React applications", sectionType: "experience" },
+        { text: "Implemented RESTful APIs using Node.js", sectionType: "experience" },
+        { text: "Collaborated with cross-functional teams", sectionType: "experience" },
+      ],
     })
-    console.log("Analyzing job description:", jd)
+
+    // Mock match analysis while backend integration is pending
+    setMatchAnalysis({
+      overallScore: 72,
+      matchedKeywords: jd.keywords.slice(0, 3),
+      missingKeywords: jd.keywords.slice(3),
+      strongSections: resume?.sections
+        .filter((section) => section.blocks.some((block) => block.score && block.score >= 70))
+        .map((section) => ({
+          ...section,
+          blocks: section.blocks.filter((block) => block.score && block.score >= 70),
+        })) ?? [],
+      weakSections: resume?.sections
+        .filter((section) => section.blocks.some((block) => !block.score || block.score < 50))
+        .map((section) => ({
+          ...section,
+          blocks: section.blocks.filter((block) => !block.score || block.score < 50),
+        })) ?? [],
+    })
   }
 
   const handleAddSkill = (skill: string) => {
-    if (!resume) return
-    
-    // Find or create skills section
-    let skillsSection = resume.sections.find(s => s.type === 'skills')
-    
-    if (!skillsSection) {
-      skillsSection = {
-        id: `section-${Date.now()}`,
-        type: 'skills',
-        label: 'Skills',
-        blocks: [],
-        order: resume.sections.length,
+    setResume((prev) => {
+      if (!prev) return prev
+
+      const sections = [...prev.sections]
+      let sectionIndex = sections.findIndex((section) => section.type === "skills")
+
+      if (sectionIndex === -1) {
+        const newSection: Section = {
+          id: `section-${Date.now()}`,
+          type: "skills",
+          label: "Skills",
+          order: sections.length,
+          blocks: [],
+        }
+        sections.push(newSection)
+        sectionIndex = sections.length - 1
       }
-      setResume({
-        ...resume,
-        sections: [...resume.sections, skillsSection],
-      })
-    } else {
-      // Add skill to existing section
-      const newBlock = {
+
+      const section = sections[sectionIndex]
+      const newBlock: Block = {
         id: `block-${Date.now()}`,
-        type: 'skill-item' as const,
+        type: "skill-item",
         text: skill,
       }
-      
-      setResume({
-        ...resume,
-        sections: resume.sections.map(section =>
-          section.id === skillsSection!.id
-            ? { ...section, blocks: [...section.blocks, newBlock] }
-            : section
-        ),
-      })
-    }
-  }
 
-  const handleAddSummary = (summary: string) => {
-    if (!resume) return
-    
-    // Find or create summary section
-    let summarySection = resume.sections.find(s => s.type === 'summary')
-    
-    if (!summarySection) {
-      summarySection = {
-        id: `section-${Date.now()}`,
-        type: 'summary',
-        label: 'Professional Summary',
-        blocks: [],
-        order: 0,
+      sections[sectionIndex] = {
+        ...section,
+        blocks: [...section.blocks, newBlock],
       }
-      setResume({
-        ...resume,
-        sections: [summarySection, ...resume.sections.map((s, idx) => ({ ...s, order: idx + 1 }))],
-      })
-    } else {
-      // Add summary to existing section
-      const newBlock = {
-        id: `block-${Date.now()}`,
-        type: 'bullet' as const,
-        text: summary,
-      }
-      
-      setResume({
-        ...resume,
-        sections: resume.sections.map(section =>
-          section.id === summarySection!.id
-            ? { ...section, blocks: [...section.blocks, newBlock] }
-            : section
-        ),
-      })
-    }
-  }
 
-  const handleAddBullet = (bullet: string, sectionId: string) => {
-    if (!resume) return
-    
-    const newBlock = {
-      id: `block-${Date.now()}`,
-      type: 'bullet' as const,
-      text: bullet,
-    }
-    
-    setResume({
-      ...resume,
-      sections: resume.sections.map(section =>
-        section.id === sectionId
-          ? { ...section, blocks: [...section.blocks, newBlock] }
-          : section
-      ),
+      return {
+        ...prev,
+        sections,
+      }
     })
   }
 
-  const handleBlockReplace = (originalBlockId: string, suggestionId: string) => {
-    // TODO: Replace block with suggestion
-    console.log("Replacing block:", originalBlockId, "with:", suggestionId)
+  const handleAddSummary = (summary: string) => {
+    setResume((prev) => {
+      if (!prev) return prev
+
+      const sections = [...prev.sections]
+      let sectionIndex = sections.findIndex((section) => section.type === "summary")
+
+      if (sectionIndex === -1) {
+        const newSection: Section = {
+          id: `section-${Date.now()}`,
+          type: "summary",
+          label: "Professional Summary",
+          order: 0,
+          blocks: [],
+        }
+
+        const updatedSections = [
+          newSection,
+          ...sections.map((section, idx) => ({
+            ...section,
+            order: idx + 1,
+          })),
+        ]
+
+        const newBlock: Block = {
+          id: `block-${Date.now()}`,
+          type: "bullet",
+          text: summary,
+        }
+
+        updatedSections[0] = {
+          ...newSection,
+          blocks: [newBlock],
+        }
+
+        return {
+          ...prev,
+          sections: updatedSections,
+        }
+      }
+
+      const section = sections[sectionIndex]
+      const newBlock: Block = {
+        id: `block-${Date.now()}`,
+        type: "bullet",
+        text: summary,
+      }
+
+      sections[sectionIndex] = {
+        ...section,
+        blocks: [...section.blocks, newBlock],
+      }
+
+      return {
+        ...prev,
+        sections,
+      }
+    })
+  }
+
+  const handleAddBullet = (bullet: string, sectionId: string) => {
+    setResume((prev) => {
+      if (!prev) return prev
+
+      const sections = prev.sections.map((section) => {
+        if (section.id !== sectionId) return section
+
+        const newBlock: Block = {
+          id: `block-${Date.now()}`,
+          type: "bullet",
+          text: bullet,
+        }
+
+        return {
+          ...section,
+          blocks: [...section.blocks, newBlock],
+        }
+      })
+
+      return {
+        ...prev,
+        sections,
+      }
+    })
+  }
+
+  const updateResume = (updatedResume: Resume) => {
+    setResume(updatedResume)
   }
 
   if (loading) {
@@ -284,37 +336,27 @@ export default function BlockEditor() {
           </div>
 
           {/* Center Panel - Resume Canvas */}
-          <div className="col-span-6 overflow-y-auto">
-            <Card className="h-full border-2 border-[#8B6F47]/30 bg-[#221410]/90 backdrop-blur-xl">
-              <CardHeader>
-                <CardTitle className="text-lg text-[#F5F1E8]">Your Resume</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResumeCanvas
-                  resume={resume}
-                  setResume={setResume}
-                  selectedBlockId={selectedBlockId}
-                  onBlockSelect={setSelectedBlockId}
-                />
-              </CardContent>
-            </Card>
-          </div>
+            <div className="col-span-6 overflow-y-auto">
+              <Card className="h-full border-2 border-[#8B6F47]/30 bg-[#221410]/90 backdrop-blur-xl flex flex-col">
+                <CardHeader>
+                  <CardTitle className="text-lg text-[#F5F1E8]">Your Resume</CardTitle>
+                </CardHeader>
+                <CardContent className="flex-1">
+                  <LivePreview resume={resume} setResume={updateResume} />
+                </CardContent>
+              </Card>
+            </div>
 
-          {/* Right Panel - Suggestions */}
-          <div className="col-span-3 overflow-y-auto">
-            <Card className="h-full border-2 border-[#8B6F47]/30 bg-[#221410]/90 backdrop-blur-xl">
-              <CardHeader>
-                <CardTitle className="text-lg text-[#F5F1E8]">Suggestions</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <SuggestionsPanel
-                  suggestions={suggestions}
-                  selectedBlockId={selectedBlockId}
-                  onReplace={handleBlockReplace}
-                />
-              </CardContent>
-            </Card>
-          </div>
+            {/* Right Panel - Suggestions */}
+            <div className="col-span-3 overflow-y-auto">
+              <AISuggestionsPanel
+                suggestions={aiSuggestions ?? undefined}
+                resume={resume}
+                onAddSkill={handleAddSkill}
+                onAddSummary={handleAddSummary}
+                onAddBullet={handleAddBullet}
+              />
+            </div>
         </div>
       </div>
     </div>

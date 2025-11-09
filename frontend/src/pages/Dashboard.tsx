@@ -28,15 +28,18 @@ import {
 import { useAuth } from "@/contexts/AuthContext"
 import { NewResumeModal } from "@/components/modals/NewResumeModal"
 import toast from "react-hot-toast"
+import { resumeApi } from "@/services/api"
 import { getUserResumes, createResume, deleteResume as deleteResumeFromFirestore } from "@/lib/firestore"
 import type { UserResume } from "@/lib/firestore"
 
 export default function DashboardPage() {
   const { currentUser, logout } = useAuth()
   const navigate = useNavigate()
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [isNewResumeModalOpen, setIsNewResumeModalOpen] = useState(false)
   const [resumes, setResumes] = useState<UserResume[]>([])
   const [loading, setLoading] = useState(true)
+  const [isUploading, setIsUploading] = useState(false)
 
   const userDisplayName = currentUser?.displayName || currentUser?.email?.split('@')[0] || 'User'
   const userEmail = currentUser?.email || ''
@@ -182,11 +185,21 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#18100a] via-[#221410] to-[#0f0b08]">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="application/pdf"
+        className="hidden"
+        onChange={handleFileChange}
+      />
       {/* Wood grain texture overlay */}
-      <div className="absolute inset-0 opacity-[0.15] pointer-events-none" style={{
-        backgroundImage: `url("data:image/svg+xml,%3Csvg width='200' height='200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='wood'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.08' numOctaves='4' seed='1' /%3E%3CfeColorMatrix values='0 0 0 0 0.35, 0 0 0 0 0.24, 0 0 0 0 0.15, 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23wood)' /%3E%3C/svg%3E")`,
-        backgroundSize: '400px 400px'
-      }} />
+      <div
+        className="absolute inset-0 opacity-[0.15] pointer-events-none"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='200' height='200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='wood'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.08' numOctaves='4' seed='1' /%3E%3CfeColorMatrix values='0 0 0 0 0.35, 0 0 0 0 0.24, 0 0 0 0 0.15, 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23wood)' /%3E%3C/svg%3E")`,
+          backgroundSize: '400px 400px',
+        }}
+      />
       
       {/* Top Navigation */}
       <nav className="border-b border-[#8B6F47]/20 bg-[#221410]/80 backdrop-blur-xl relative z-10">
@@ -250,23 +263,33 @@ export default function DashboardPage() {
           <aside className="space-y-6">
             <Card className="border-2 border-[#8B6F47]/30 bg-[#221410]/90 backdrop-blur-xl">
               <CardContent className="p-4 space-y-3">
-                <Button
-                  onClick={() => setIsNewResumeModalOpen(true)}
-                  className="w-full justify-start gap-2 bg-gradient-to-r from-[#3a5f24] to-[#253f12] text-white hover:from-[#4a7534] hover:to-[#355222]"
-                  size="lg"
-                >
-                  <Plus className="h-5 w-5" />
-                  New Resume
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="w-full justify-start gap-2 bg-[#18100a]/60 border-[#8B6F47]/30 text-[#F5F1E8] hover:bg-[#3a5f24]/20 hover:border-[#3a5f24]/50" 
-                  size="default"
-                  onClick={() => setIsNewResumeModalOpen(true)}
-                >
-                  <Upload className="h-4 w-4" />
-                  Upload Resume
-                </Button>
+                  <Button
+                    onClick={() => setIsNewResumeModalOpen(true)}
+                    className="w-full justify-start gap-2 bg-gradient-to-r from-[#3a5f24] to-[#253f12] text-white hover:from-[#4a7534] hover:to-[#355222]"
+                    size="lg"
+                  >
+                    <Plus className="h-5 w-5" />
+                    New Resume
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start gap-2 bg-[#18100a]/60 border-[#8B6F47]/30 text-[#F5F1E8] hover:bg-[#3a5f24]/20 hover:border-[#3a5f24]/50"
+                    size="default"
+                    onClick={handleUploadClick}
+                    disabled={isUploading}
+                  >
+                    {isUploading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Parsing...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="h-4 w-4" />
+                        Upload Resume
+                      </>
+                    )}
+                  </Button>
               </CardContent>
             </Card>
             <Card className="border-2 border-[#8B6F47]/30 bg-[#221410]/90 backdrop-blur-xl">
@@ -404,14 +427,24 @@ export default function DashboardPage() {
                       <Plus className="mr-2 h-4 w-4" />
                       Create New Resume
                     </Button>
-                    <Button 
-                      variant="outline" 
-                      className="border-[#8B6F47]/30 text-[#C9B896] hover:bg-[#3a5f24]/20 hover:text-[#F5F1E8] hover:border-[#3a5f24]/50"
-                      onClick={() => setIsNewResumeModalOpen(true)}
-                    >
-                      <Upload className="mr-2 h-4 w-4" />
-                      Upload Resume
-                    </Button>
+                      <Button
+                        variant="outline"
+                        className="border-[#8B6F47]/30 text-[#C9B896] hover:bg-[#3a5f24]/20 hover:text-[#F5F1E8] hover:border-[#3a5f24]/50"
+                        onClick={handleUploadClick}
+                        disabled={isUploading}
+                      >
+                        {isUploading ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Parsing...
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="mr-2 h-4 w-4" />
+                            Upload Resume
+                          </>
+                        )}
+                      </Button>
                   </div>
                 </CardContent>
               </Card>
