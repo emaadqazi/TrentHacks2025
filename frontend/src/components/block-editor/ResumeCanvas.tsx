@@ -1,10 +1,12 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import type { Resume, Section, Block } from "@/types/resume"
 import { Button } from "@/components/ui/button"
-import { Plus, FileUp } from "lucide-react"
+import { Plus, FileUp, Loader2 } from "lucide-react"
 import SectionBlock from "./SectionBlock"
 import { DragDropContext, Droppable } from "@hello-pangea/dnd"
 import type { DropResult } from "@hello-pangea/dnd"
+import toast from "react-hot-toast"
+import { resumeApi } from "@/services/api"
 
 interface ResumeCanvasProps {
   resume: Resume | null
@@ -114,6 +116,8 @@ const generateSampleResume = (): Resume => {
 
 export default function ResumeCanvas({ resume, setResume, selectedBlockId, onBlockSelect }: ResumeCanvasProps) {
   const [localResume, setLocalResume] = useState<Resume | null>(resume)
+  const [isUploading, setIsUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     setLocalResume(resume)
@@ -165,6 +169,55 @@ export default function ResumeCanvas({ resume, setResume, selectedBlockId, onBlo
 
     setLocalResume(updatedResume)
     setResume(updatedResume)
+  }
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    // Validate file type
+    if (file.type !== 'application/pdf') {
+      toast.error('Please upload a PDF file')
+      return
+    }
+
+    // Validate file size (10MB max)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('File size must be less than 10MB')
+      return
+    }
+
+    setIsUploading(true)
+
+    try {
+      const data = await resumeApi.uploadResume(file)
+
+      // Create resume from parsed sections
+      const uploadedResume: Resume = {
+        id: `resume-${Date.now()}`,
+        title: file.name.replace('.pdf', ''),
+        sections: data.sections,
+      }
+
+      setLocalResume(uploadedResume)
+      setResume(uploadedResume)
+
+      toast.success(`Imported ${data.metadata?.totalBlocks || 0} blocks from ${file.name}`)
+    } catch (error: any) {
+      console.error('Upload error:', error)
+      const errorMessage = error?.response?.data?.error || error?.message || 'Failed to upload resume'
+      toast.error(errorMessage)
+    } finally {
+      setIsUploading(false)
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    }
   }
 
   const handleBlockDelete = (sectionId: string, blockId: string) => {
@@ -265,6 +318,13 @@ export default function ResumeCanvas({ resume, setResume, selectedBlockId, onBlo
   if (!localResume) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="application/pdf"
+          onChange={handleFileChange}
+          className="hidden"
+        />
         <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-muted">
           <FileUp className="h-10 w-10 text-muted-foreground" />
         </div>
@@ -273,12 +333,21 @@ export default function ResumeCanvas({ resume, setResume, selectedBlockId, onBlo
           Start by loading a sample resume or uploading your own
         </p>
         <div className="flex gap-3">
-          <Button onClick={handleLoadSample}>
+          <Button onClick={handleLoadSample} disabled={isUploading}>
             Load Sample Resume
           </Button>
-          <Button variant="outline">
-            <FileUp className="mr-2 h-4 w-4" />
-            Upload Resume
+          <Button variant="outline" onClick={handleUploadClick} disabled={isUploading}>
+            {isUploading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Parsing PDF...
+              </>
+            ) : (
+              <>
+                <FileUp className="mr-2 h-4 w-4" />
+                Upload Resume
+              </>
+            )}
           </Button>
         </div>
       </div>
@@ -287,6 +356,13 @@ export default function ResumeCanvas({ resume, setResume, selectedBlockId, onBlo
 
   return (
     <div className="space-y-4">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="application/pdf"
+        onChange={handleFileChange}
+        className="hidden"
+      />
       <DragDropContext onDragEnd={handleDragEnd}>
         <Droppable droppableId="all-sections" type="SECTION">
           {(provided) => (
@@ -308,10 +384,25 @@ export default function ResumeCanvas({ resume, setResume, selectedBlockId, onBlo
         </Droppable>
       </DragDropContext>
 
-      <Button variant="outline" className="w-full" onClick={handleAddSection}>
-        <Plus className="mr-2 h-4 w-4" />
-        Add Section
-      </Button>
+      <div className="flex gap-2">
+        <Button variant="outline" className="flex-1" onClick={handleAddSection}>
+          <Plus className="mr-2 h-4 w-4" />
+          Add Section
+        </Button>
+        <Button variant="outline" className="flex-1" onClick={handleUploadClick} disabled={isUploading}>
+          {isUploading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Uploading...
+            </>
+          ) : (
+            <>
+              <FileUp className="mr-2 h-4 w-4" />
+              Upload New
+            </>
+          )}
+        </Button>
+      </div>
     </div>
   )
 }

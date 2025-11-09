@@ -126,9 +126,24 @@ export default function DashboardPage() {
                     New Resume
                   </Button>
                 </Link>
-                <Button variant="outline" className="w-full justify-start gap-2 bg-transparent" size="default">
-                  <Upload className="h-4 w-4" />
-                  Upload Resume
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start gap-2" 
+                  size="default"
+                  onClick={handleUploadClick}
+                  disabled={isUploading}
+                >
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4" />
+                      Upload Resume
+                    </>
+                  )}
                 </Button>
               </CardContent>
             </Card>
@@ -246,9 +261,22 @@ export default function DashboardPage() {
                         Create New Resume
                       </Button>
                     </Link>
-                    <Button variant="outline">
-                      <Upload className="mr-2 h-4 w-4" />
-                      Upload Resume
+                    <Button 
+                      variant="outline"
+                      onClick={handleUploadClick}
+                      disabled={isUploading}
+                    >
+                      {isUploading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="mr-2 h-4 w-4" />
+                          Upload Resume
+                        </>
+                      )}
                     </Button>
                   </div>
                 </CardContent>
@@ -260,4 +288,3 @@ export default function DashboardPage() {
     </div>
   )
 }
-

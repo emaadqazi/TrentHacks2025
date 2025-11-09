@@ -19,6 +19,14 @@ export interface Section {
   label: string // e.g. "Experience", "Education"
   blocks: Block[]
   order: number
+  subsections?: SubSection[] // For jobs within Experience, projects within Projects, etc.
+}
+
+export interface SubSection {
+  id: string
+  title: string // e.g. "Dominarlo - Software Developer"
+  blocks: Block[]
+  order: number
 }
 
 export interface Resume {

@@ -53,35 +53,70 @@ export default function SectionBlock({
               </div>
             </CardHeader>
             <CardContent>
-              <Droppable droppableId={section.id} type="BLOCK">
-                {(provided, snapshot) => (
-                  <div
-                    ref={provided.innerRef}
-                    {...provided.droppableProps}
-                    className={`min-h-[50px] ${
-                      snapshot.isDraggingOver ? "bg-primary/5 rounded-md" : ""
-                    }`}
-                  >
-                    {section.blocks.length === 0 ? (
-                      <div className="text-center py-8 text-sm text-muted-foreground border-2 border-dashed rounded-md">
-                        No bullets yet. Click "Add" to create one.
-                      </div>
-                    ) : (
-                      section.blocks.map((block, blockIndex) => (
-                        <BulletBlock
-                          key={block.id}
-                          block={block}
-                          index={blockIndex}
-                          isSelected={selectedBlockId === block.id}
-                          onSelect={onBlockSelect}
-                          onDelete={(blockId) => onBlockDelete(section.id, blockId)}
-                        />
-                      ))
-                    )}
-                    {provided.placeholder}
-                  </div>
-                )}
-              </Droppable>
+              {/* Render subsections if they exist */}
+              {section.subsections && section.subsections.length > 0 ? (
+                <div className="space-y-4">
+                  {section.subsections.map((subsection) => (
+                    <div key={subsection.id} className="pl-4 border-l-2 border-primary/20">
+                      <h4 className="font-semibold text-sm text-primary mb-2">{subsection.title}</h4>
+                      <Droppable droppableId={subsection.id} type="BLOCK">
+                        {(provided, snapshot) => (
+                          <div
+                            ref={provided.innerRef}
+                            {...provided.droppableProps}
+                            className={`min-h-[50px] ${
+                              snapshot.isDraggingOver ? "bg-primary/5 rounded-md p-2" : ""
+                            }`}
+                          >
+                            {subsection.blocks.map((block, blockIndex) => (
+                              <BulletBlock
+                                key={block.id}
+                                block={block}
+                                index={blockIndex}
+                                isSelected={selectedBlockId === block.id}
+                                onSelect={onBlockSelect}
+                                onDelete={(blockId) => onBlockDelete(section.id, blockId)}
+                              />
+                            ))}
+                            {provided.placeholder}
+                          </div>
+                        )}
+                      </Droppable>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                /* Render blocks directly if no subsections */
+                <Droppable droppableId={section.id} type="BLOCK">
+                  {(provided, snapshot) => (
+                    <div
+                      ref={provided.innerRef}
+                      {...provided.droppableProps}
+                      className={`min-h-[50px] ${
+                        snapshot.isDraggingOver ? "bg-primary/5 rounded-md" : ""
+                      }`}
+                    >
+                      {section.blocks.length === 0 ? (
+                        <div className="text-center py-8 text-sm text-muted-foreground border-2 border-dashed rounded-md">
+                          No bullets yet. Click "Add" to create one.
+                        </div>
+                      ) : (
+                        section.blocks.map((block, blockIndex) => (
+                          <BulletBlock
+                            key={block.id}
+                            block={block}
+                            index={blockIndex}
+                            isSelected={selectedBlockId === block.id}
+                            onSelect={onBlockSelect}
+                            onDelete={(blockId) => onBlockDelete(section.id, blockId)}
+                          />
+                        ))
+                      )}
+                      {provided.placeholder}
+                    </div>
+                  )}
+                </Droppable>
+              )}
             </CardContent>
           </Card>
         </div>
