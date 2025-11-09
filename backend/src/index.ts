@@ -21,12 +21,17 @@ if (apiKey) {
 }
 
 const app = express();
-const PORT = process.env.PORT || 5001; // Changed from 5000 (AirPlay uses 5000)
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 5001; // Railway provides PORT as string
 
-// Simple CORS - allow everything in development
+// CORS configuration - allow all origins in production (Railway handles HTTPS)
+// In production, Railway provides the PORT env variable automatically
 app.use(cors({
-  origin: true,
-  credentials: true
+  origin: process.env.NODE_ENV === 'production' 
+    ? true // Allow all origins in production (Railway handles security)
+    : true, // Allow all in development too
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 // Body parsing
@@ -43,6 +48,7 @@ app.use((req, res, next) => {
 app.use('/api', routes);
 
 // Start server
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`   Environment: ${process.env.NODE_ENV || 'development'}`);
 });
