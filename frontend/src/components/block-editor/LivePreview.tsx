@@ -310,7 +310,7 @@ export default function LivePreview({ resume, setResume, onBlockUpdate, onDragIt
               className="flex items-start justify-between gap-2 cursor-pointer hover:bg-muted/50 p-2 rounded -m-2 transition-colors"
               onClick={() => isEditable && handleBlockEdit(sectionId, block)}
             >
-              <h3 className="text-base font-bold text-foreground">{block.text}</h3>
+                <h3 className="text-base font-bold text-[#2a1b12]">{block.text}</h3>
               {isEditable && (
                 <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                   {block.score !== undefined && (
@@ -384,7 +384,7 @@ export default function LivePreview({ resume, setResume, onBlockUpdate, onDragIt
               className="flex items-start justify-between gap-2 cursor-pointer hover:bg-muted/30 p-2 rounded -m-2 transition-colors"
               onClick={() => isEditable && handleBlockEdit(sectionId, block)}
             >
-              <p className="text-sm leading-relaxed text-foreground flex-1">{block.text}</p>
+                <p className="text-sm leading-relaxed text-[#2a1b12] flex-1">{block.text}</p>
               {isEditable && (
                 <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                   {block.tags && block.tags.length > 0 && (
@@ -427,7 +427,7 @@ export default function LivePreview({ resume, setResume, onBlockUpdate, onDragIt
             className="flex items-center justify-between gap-2 cursor-pointer hover:bg-muted/50 p-2 rounded -m-2 transition-colors"
             onClick={() => isEditable && handleBlockEdit(sectionId, block)}
           >
-            <span className="text-sm text-foreground">{block.text}</span>
+            <span className="text-sm text-[#2a1b12]">{block.text}</span>
             {isEditable && (
               <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                 {block.score !== undefined && (
@@ -490,12 +490,12 @@ export default function LivePreview({ resume, setResume, onBlockUpdate, onDragIt
         </CardDescription>
       </CardHeader>
       <CardContent className="pt-6">
-        <ScrollArea className="h-[calc(100vh-250px)] pr-4">
+          <ScrollArea className="h-[calc(100vh-250px)] pr-4">
           {/* PDF-Style Resume Document */}
-          <div className="pdf-preview-container bg-white dark:bg-gray-900 rounded-lg shadow-lg p-8 space-y-6 border-2 border-primary/20">
+            <div className="pdf-preview-container rounded-lg border border-[#d3c4a6]/40 bg-[#f5f1e8] p-8 text-[#1f140d] shadow-[0_25px_80px_-40px_rgba(15,11,8,0.6)] space-y-6">
             {/* Resume Title */}
             <div className="text-center mb-6">
-              <h1 className="text-2xl font-bold text-foreground">{resume.title}</h1>
+                <h1 className="text-2xl font-bold text-[#1f140d]">{resume.title}</h1>
             </div>
 
             {/* Render Sections */}
@@ -527,7 +527,7 @@ export default function LivePreview({ resume, setResume, onBlockUpdate, onDragIt
                     <div className="space-y-4">
                       {section.subsections.map((subsection) => (
                         <div key={subsection.id} className="space-y-2">
-                          <h3 className="font-semibold text-base text-foreground">
+                            <h3 className="font-semibold text-base text-[#2a1b12]">
                             {subsection.title}
                           </h3>
                           <div className="space-y-2 pl-4">
@@ -538,9 +538,9 @@ export default function LivePreview({ resume, setResume, onBlockUpdate, onDragIt
                     </div>
                   ) : (
                     /* Render blocks directly if no subsections */
-                    <div className="space-y-2">
-                      {section.blocks.map((block) => renderBlock(block, section.id))}
-                    </div>
+                      <div className="space-y-2">
+                        {section.blocks.map((block) => renderBlock(block, section.id))}
+                      </div>
                   )}
 
                   {/* Empty state for section with drop zone */}
@@ -551,7 +551,7 @@ export default function LivePreview({ resume, setResume, onBlockUpdate, onDragIt
                         className={`text-center py-4 text-sm border-2 border-dashed rounded-md transition-all ${
                           isValidDropZone
                             ? 'border-primary bg-primary/10 text-primary'
-                            : 'border-border/50 bg-muted/20 text-muted-foreground'
+                              : 'border-border/50 bg-muted/20 text-muted-foreground'
                         }`}
                       >
                         {isValidDropZone
